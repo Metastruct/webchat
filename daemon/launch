@@ -1,1 +1,5 @@
-../../webchat/launch
+#!/bin/sh
+while true;do
+	/usr/bin/node /home/metastruct/webchat/app.js
+	sleep 0.5
+done
