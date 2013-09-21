@@ -1,5 +1,5 @@
 #!/bin/bash
-
+git pull
 
 ps --no-headers  --format pid | tr -d ' ' | while read line;do
 	if pwdx $line 2>/dev/null | fgrep -- "$PWD/daemon" >/dev/null; then

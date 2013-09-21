@@ -1,5 +1,5 @@
 #!/bin/sh
 while true;do
-	/usr/bin/node /home/metastruct/webchat/app.js
-	sleep 0.5
+	/usr/bin/node app.js
+	sleep 0.3
 done

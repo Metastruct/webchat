@@ -1,14 +1,17 @@
 // npm install buffertools
 // npm install socket.io
+// npm install net
+
 require('buffertools');
 
-var AUTHPORT = 18080;
-var WEBPORT = 9080;
-var GAMEPORT = 9081;
+var CFG=require('./config.json');
 
-var WHITELIST = ["88.191.109.120", "88.191.102.162", "88.191.104.162", "173.242.114.20","144.76.38.98","88.191.111.120"]; //only these game IPs are allowed to connect
-var AUTHSERVER = "185.2.168.7";
+var AUTHPORT = CFG.AUTHPORT;
+var WEBPORT = CFG.WEBPORT;
+var GAMEPORT = CFG.GAMEPORT;
 
+var WHITELIST = CFG.WHITELIST;
+var AUTHSERVER = CFG.AUTHSERVER;
 //------
 
 var net = require('net');
@@ -146,7 +149,7 @@ io.sockets.on('connection', function(socket) {
                 
                 socket.join('1');
                 socket.join('2');
-                socket.join('3');
+                //socket.join('3');
                 
                 sendToServers(socket.id, [ 'join', clients[token].userid, clients[token].steamid, clients[token].name, 1 ]); //last arg is team
                 socket.broadcast.emit('join', { name: clients[token].name, steamid: clients[token].steamid });
@@ -320,17 +323,15 @@ function serverfunc(sock) {
     });
     sock.on('connect', function() {
         console.log('[GAME] Sending hello to ' + ((sock.remoteAddress || sock._remoteAddress) || sock._remoteAddress));
-		sock.SendTable([ 'hello', 0, 'banni' ]);
+		sock.SendTable([ 'hello', 0, CFG.SHARED_SECRET ]);
     });
 	
 }
 net.createServer(serverfunc).listen(GAMEPORT, "0.0.0.0");
 
-var servers = [
-	["88.191.102.162", 	27015, 37477, 1],
-	["88.191.109.120", 	27015, 37477, 2]
-	//["144.76.38.98", 	27015, 37477, 3]
-];
+var servers=CFG.servers;
+
+
 
 for (var i=0; i<servers.length; i++) {
 	var host = servers[i] [0];
