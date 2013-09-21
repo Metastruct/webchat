@@ -50,7 +50,7 @@ function RealTwit( msg ) {
 	
 	twit.updateStatus( msg ,
         function(data) {
-				
+
         }
     );
 
@@ -59,8 +59,11 @@ function RealTwit( msg ) {
 function Tweetable(msg) {
 	if (msg.length>139) return false;
 	if (msg.length<5) return false;
+	if (msg.search("^[!\\.\\\\/]") == 0 ) return false; 
+	if (msg.search("[a-zA-Z]") == -1 ) return false; 
 	if (msg.indexOf("http://")>=0) return false;
 	if (msg.indexOf("https://")>=0) return false;
+	if (msg.indexOf(" ")==-1) return false;
 	
 	return true;
 }
