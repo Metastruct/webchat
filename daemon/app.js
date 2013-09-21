@@ -1,10 +1,87 @@
 // npm install buffertools
 // npm install socket.io
 // npm install net
+// npm install twitter
 
 require('buffertools');
 
+var fs = require("fs");
+
 var CFG=require('./config.json');
+
+var util = require('util'),
+    twitter = require('twitter');
+var twit = new twitter({
+    consumer_key: CFG.consumer_key,
+    consumer_secret: CFG.consumer_secret,
+    access_token_key: CFG.access_token_key,
+    access_token_secret: CFG.access_token_secret
+});
+
+function Now() {
+	return Math.round((new Date()).getTime() / 1000);
+}
+
+var LastTweet = 0;
+
+function CanTweet() {
+	if (LastTweet<1) {
+		var lasttwit = require("./lasttwit.json");
+		LastTweet = lasttwit.LastTweet;
+	}
+	
+	if (LastTweet<1) return false;
+	
+	var day = 60*60*(24+1);
+	
+	return Now() - LastTweet > day;
+
+}
+
+function PreTweet( msg ) {
+	LastTweet = Now();
+	fs.writeFile( "lasttwit.json", JSON.stringify( { LastTweet: LastTweet, tweet: msg } ), "utf8", function() {} );
+}
+
+
+function RealTwit( msg ) {
+	if (!CanTweet()) return;
+	PreTweet( msg );
+	
+	twit.updateStatus( msg ,
+        function(data) {
+				
+        }
+    );
+
+}
+
+function Tweetable(msg) {
+	if (msg.length>139) return false;
+	if (msg.length<5) return false;
+	if (msg.indexOf("http://")>=0) return false;
+	if (msg.indexOf("https://")>=0) return false;
+	
+	return true;
+}
+
+var cachegood = false;
+function Twit( msg ) {
+	try { // secondary system, crash away if you need to
+
+		if (cachegood && CanTweet()) {
+			RealTwit( cachegood );
+			cachegood = false;
+		}
+		if (!cachegood && (typeof msg == 'string' || msg instanceof String)) {
+			if (Tweetable( msg )) {
+				cachegood = msg;
+			}
+		}
+	} catch (err) { }
+}
+
+
 
 var AUTHPORT = CFG.AUTHPORT;
 var WEBPORT = CFG.WEBPORT;
@@ -39,7 +116,7 @@ net.Socket.prototype.SendTable = function(data) {
     } catch (e) {
         console.log('[GAME] ERROR: Couldn\'t send table: ' + e);
     }
-}
+};
 
 //---AUTH SERVER---
 
@@ -76,13 +153,15 @@ net.createServer(function(sock) {
 
 //---WEB SERVER---
 
+
 function sendToServers(socketid, data) {
-    for (server in io.sockets.manager.roomClients[socketid]) {
+    for (var server in io.sockets.manager.roomClients[socketid]) {
         if (server == "") continue; //ignore the catch-all socket.io room
         var srv = servers[server.substring(1)]; //substring to remove the start /
         if (srv) srv.socket.SendTable(data);
     }
 }
+
 
 function onDisconnect(socket) {
     socket.get('name', function(err, name) {
@@ -134,11 +213,11 @@ io.sockets.on('connection', function(socket) {
                 
                 var allusers = {}; //tell the client who's connected both on web and games
                 
-                for (client in clients)
+                for (var client in clients)
                     allusers[clients[client].name] = clients[client].steamid;
                     
-                for (server in servers) { //not working wat
-                    for (client in servers[server].users) {
+                for (var server in servers) { //not working wat
+                    for (var client in servers[server].users) {
                         allusers[servers[server].users[client].name] = servers[server].users[client].steamid;
                     }
                 }
@@ -167,6 +246,7 @@ io.sockets.on('connection', function(socket) {
                 socket.on('message', function(message) {
                     if (message.trim() == "") return;
                     console.log('[WEB] ' + name + ' (' + socket.handshake.address.address + '): ' + message);
+					Twit(message);
 
                     sendToServers(socket.id, [ 'say', clients[token].userid, message ]); //have to assume it was sent D:
                     
@@ -177,11 +257,11 @@ io.sockets.on('connection', function(socket) {
         });
     });
     
-    socket.on('error', function(err) {
-        console.log('[GAME] ERROR: ' + err);
-        
-        onDisconnect(socket);
-    });
+	socket.on('error', function(err) {
+		console.log('[GAME] ERROR: ' + err);
+
+		onDisconnect(socket);
+	});
     
     socket.on('disconnect', function() {
         onDisconnect(socket);
@@ -285,6 +365,7 @@ function serverfunc(sock) {
                     var Name = usr.Name || "PLAYER MISSING??";
                     
                     console.log('[GAME] ' + Name + ': ' + txt);
+					Twit(txt);
                     io.sockets.in(sock.serverid).emit('chat', { server: parseInt(sock.serverid), name: Name, steamid: usr.SteamID, message: txt });
                     break;
                     
