@@ -1,0 +1,16 @@
+#chat p {
+    margin: 0 0 0 !important;
+    display: inline;
+}
+
+#chat p.join, #chat p.leave { font-weight: bold; }
+
+#chat p.join { color: #57E964; }
+
+#chat p.leave { color: #C11B17; }
+
+#chat span.time {
+    font-size: 0.7em;
+    font-style: italic;
+    margin-right: 5px;
+}

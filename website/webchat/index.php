@@ -1,0 +1,1 @@
+<?php header("Location: http://metastruct.org/sso/webchat.php");

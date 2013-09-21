@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <title>Metastruct</title>
+        <link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+        <link href="/assets/css/bootstrap-responsive.min.css" rel="stylesheet">
+        <link href="chat.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="navbar navbar-inverse navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container">
+                    <a class="brand" href="/app"><i class="icon-chevron-left icon-white"></i> Metastruct</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="container">
+            <div class="row">
+                <div class="span12">
+                    <form class="form-inline" action="/">
+                        <input class="input-medium" id="chattext" type="text">
+                        <input type="submit" value="Send" class="btn" id="chatsend">
+                        <label class="checkbox inline">
+                            <input type="checkbox" id="chkserver1" checked="true" data-server="1"> #1
+                        </label>
+                        <label class="checkbox inline">
+                            <input type="checkbox" id="chkserver2" checked="true" data-server="2"> #2
+                        </label>
+                        <label class="checkbox inline">
+                            <input type="checkbox" id="chkserver3" checked="true" data-server="3"> #3
+                        </label>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="span12">
+                    <div id="chat"></div>
+                </div>
+            </div>
+            
+            <hr>
+            
+            <footer>&copy; Metastruct 2012 by <a href="http://ryan-o.co.uk" target="_blank">ukgamer</a></footer>
+        </div>
+        
+        <script src="http://code.jquery.com/jquery-latest.js"></script>
+        <script src="/assets/js/bootstrap.min.js"></script>
+        <script src="http://stevenlevithan.com/assets/misc/date.format.js"></script>
+        <script src="http://arsenic.iriz.uk.to:9080/socket.io/socket.io.js.min"></script>
+        <script src="webchat.js"></script>
+    </body>
+</html>
