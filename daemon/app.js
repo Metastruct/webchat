@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 // npm install buffertools
 // npm install socket.io
 // npm install net
@@ -9,81 +11,84 @@ var fs = require("fs");
 
 var CFG=require('./config.json');
 
-var util = require('util'),
-    twitter = require('twitter');
-var twit = new twitter({
-    consumer_key: CFG.consumer_key,
-    consumer_secret: CFG.consumer_secret,
-    access_token_key: CFG.access_token_key,
-    access_token_secret: CFG.access_token_secret
-});
 
-function Now() {
-	return Math.round((new Date()).getTime() / 1000);
-}
+// ==== TWITTER ====
+// Todo: move this to another file
+	var util = require('util'),
+		twitter = require('twitter');
+	var twit = new twitter({
+		consumer_key: CFG.consumer_key,
+		consumer_secret: CFG.consumer_secret,
+		access_token_key: CFG.access_token_key,
+		access_token_secret: CFG.access_token_secret
+	});
 
-var LastTweet = 0;
-
-function CanTweet() {
-	if (LastTweet<1) {
-		var lasttwit = require("./lasttwit.json");
-		LastTweet = lasttwit.LastTweet;
+	function Now() {
+		return Math.round((new Date()).getTime() / 1000);
 	}
-	
-	if (LastTweet<1) return false;
-	
-	var day = 60*60*(24+1);
-	
-	return Now() - LastTweet > day;
 
-}
+	var LastTweet = 0;
 
-function PreTweet( msg ) {
-	LastTweet = Now();
-	fs.writeFile( "lasttwit.json", JSON.stringify( { LastTweet: LastTweet, tweet: msg } ), "utf8", function() {} );
-}
-
-
-function RealTwit( msg ) {
-	if (!CanTweet()) return;
-	PreTweet( msg );
-	
-	twit.updateStatus( msg ,
-        function(data) {
-
-        }
-    );
-
-}
-
-function Tweetable(msg) {
-	if (msg.length>139) return false;
-	if (msg.length<5) return false;
-	if (msg.search("^[!\\.\\\\/]") == 0 ) return false; 
-	if (msg.search("[a-zA-Z]") == -1 ) return false; 
-	if (msg.indexOf("http://")>=0) return false;
-	if (msg.indexOf("https://")>=0) return false;
-	if (msg.indexOf(" ")==-1) return false;
-	
-	return true;
-}
-
-var cachegood = false;
-function Twit( msg ) {
-	try { // secondary system, crash away if you need to
-
-		if (cachegood && CanTweet()) {
-			RealTwit( cachegood );
-			cachegood = false;
+	function CanTweet() {
+		if (LastTweet<1) {
+			var lasttwit = require("./lasttwit.json");
+			LastTweet = lasttwit.LastTweet;
 		}
-		if (!cachegood && (typeof msg == 'string' || msg instanceof String)) {
-			if (Tweetable( msg )) {
-				cachegood = msg;
+		
+		if (LastTweet<1) return false;
+		
+		var day = 60*60*(24+1);
+		
+		return Now() - LastTweet > day;
+
+	}
+
+	function PreTweet( msg ) {
+		LastTweet = Now();
+		fs.writeFile( "lasttwit.json", JSON.stringify( { LastTweet: LastTweet, tweet: msg } ), "utf8", function() {} );
+	}
+
+
+	function RealTwit( msg ) {
+		if (!CanTweet()) return;
+		PreTweet( msg );
+		
+		twit.updateStatus( msg ,
+			function(data) {
+
 			}
-		}
-	} catch (err) { }
-}
+		);
 
+	}
+
+	function Tweetable(msg) {
+		if (msg.length>139) return false;
+		if (msg.length<5) return false;
+		if (msg.search("^[!\\.\\\\/]") == 0 ) return false; 
+		if (msg.search("[a-zA-Z]") == -1 ) return false; 
+		if (msg.indexOf("http://")>=0) return false;
+		if (msg.indexOf("https://")>=0) return false;
+		if (msg.indexOf(" ")==-1) return false;
+		
+		return true;
+	}
+
+	var cachegood = false;
+	function Twit( msg ) {
+		try { // secondary system, crash away if you need to
+
+			if (cachegood && CanTweet()) {
+				RealTwit( cachegood );
+				cachegood = false;
+			}
+			if (!cachegood && (typeof msg == 'string' || msg instanceof String)) {
+				if (Tweetable( msg )) {
+					cachegood = msg;
+				}
+			}
+		} catch (err) { }
+	}
+// ==== TWITTER END ====
 
 
 var AUTHPORT = CFG.AUTHPORT;
@@ -393,6 +398,14 @@ function serverfunc(sock) {
                     delete servers[sock.serverid].users[UserID];
                     break;
                 
+                case 'partyline':
+					var msg = data[1];
+					console.log('[PARTYLINE] '+sock.serverid+': ' + msg);
+					break;
+                case 'oob':
+					var msg = data[1];
+					console.log('[OOB] : ' + msg);
+					break;
                 default:
                     console.log('[GAME] Unhandled sendtype: ' + sendtype);
                     break;

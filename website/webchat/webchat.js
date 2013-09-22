@@ -11,7 +11,7 @@ var token = window.location.hash.substring(1);
 if ( typeof io == 'undefined' )
 {
 	var div = $('<div>IO LIBRARY NOT LOADED. SERVER BROKEN!</div>');
-	$("#chat").prepend(div.fadeIn(200));
+	$("#chat").prepend(div);
 
 } 
 
@@ -19,6 +19,10 @@ if (token)
     var socket = io.connect('http://arsenic.iriz.uk.to:9080');
 else
     window.location = "http://metastruct.org/webchat";
+
+	
+var div = $('<div>Connecting...</div>');
+$("#chat").prepend(div);
 
 socket.on('connect', function() {
     socket.emit('token', token);
@@ -46,7 +50,7 @@ socket.on('connect', function() {
             
             div.append(p);
 
-            $('#chat div:nth-child(20)').remove();
+            $('#chat div:nth-child(1000)').remove();
             $("#chat").prepend(div.fadeIn(200));
         });
         
@@ -60,7 +64,7 @@ socket.on('connect', function() {
             else
                 div.append('<p class="join">' + escapeEntities(data.name) + ' joined the server</p>');
             
-            $('#chat div:nth-child(20)').remove();
+            $('#chat div:nth-child(1000)').remove();
             
             $("#chat").prepend(div.fadeIn(200));
         });
@@ -75,7 +79,7 @@ socket.on('connect', function() {
             else
                 div.append('<p class="leave">' + escapeEntities(data.name) + ' left the server</p>');
             
-            $('#chat div:nth-child(20)').remove();
+            $('#chat div:nth-child(1000)').remove();
             $("#chat").prepend(div.fadeIn(200));
         });
         
