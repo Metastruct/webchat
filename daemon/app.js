@@ -281,8 +281,10 @@ io.sockets.on('connection', function(socket) {
 console.log('[GAME] Listening on port ' + GAMEPORT);
 
 function serverfunc(sock) {
-    console.log('[GAME] Received connection from ' + (sock.remoteAddress || sock._remoteAddress) + ':' + (sock.remotePort || sock._remotePort));
-    
+    if (!sock.ourconn) {
+		console.log('[GAME] Received connection from ' + (sock.remoteAddress || sock._remoteAddress) + ':' + (sock.remotePort || sock._remotePort));
+    }
+	
 	sock.on('error', function(err) {
 		console.log('[GAME] Error: ' + err);
 	});
@@ -337,13 +339,14 @@ function serverfunc(sock) {
                     var ID = String(data[1]);
                     var serverpw = String(data[1]);
                     
+					// TODO: Obey PASSWORD???
+					
                     clearTimeout(logintimeout);
                     sock.socket = sock;
                     sock.ID = ID;
                     
                     if (servers[sock.ID] && servers[sock.ID].socket) {
                         servers[sock.ID].socket.destroy();
-						return;
 					}
                     
                     servers[sock.ID] = { socket: sock, users: {} };
@@ -392,7 +395,7 @@ function serverfunc(sock) {
                     var Name = data[3];
                     
                     servers[sock.ID].users[UserID] = { SteamID: SteamID, Name: Name };
-                    console.log('[GAME] Player ' + Name + ' joined with steamid ' + SteamID);
+                    console.log('#'+sock.ID+' ' + Name + ' joined (' + SteamID+ ')');
                     io.sockets.in(sock.ID).emit('join', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
                     break;
                     
@@ -403,18 +406,18 @@ function serverfunc(sock) {
                     var usr = servers[sock.ID].users[UserID];
                     var Name = usr.Name || "PLAYER MISSING??";
                     
-                    console.log('[GAME] Player ' + Name + ' left with steamid ' + SteamID);
+                    console.log('#'+sock.ID+' ' + Name + ' left (' + SteamID+ ')');
                     io.sockets.in(sock.ID).emit('leave', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
                     delete servers[sock.ID].users[UserID];
                     break;
                 
                 case 'partyline':
 					var msg = data[1];
-					console.log('[PARTYLINE] '+sock.serverid+': ' + msg);
+					console.log('[PARTYLINE #'+sock.ID+'] ' + msg);
 					break;
                 case 'oob':
 					var msg = data[1];
-					console.log('[OOB] : ' + msg);
+					console.log('[OOB] ' + msg);
 					break;
                 default:
                     console.log('[GAME] Unhandled sendtype: ' + sendtype);
@@ -433,9 +436,9 @@ function serverfunc(sock) {
 		
 		if (sock.ourconn) {
 			if (sock.tried) {
-				console.log('[GAME] Cancelling reconnect to server #'+sock.ID+"!");
+				console.log('[GAME] 	Cancelling reconnect to server #'+sock.ID+"!");
 			} else {
-				console.log('[GAME] Reconnecting to server #'+sock.ID+"...");
+				console.log('[GAME] 	Reconnecting to server #'+sock.ID+"...");
 				link_server(sock.serverinfo,true);
 			}
 		}
