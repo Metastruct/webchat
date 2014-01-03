@@ -348,10 +348,11 @@ function serverfunc(sock) {
                     clearTimeout(logintimeout);
                     sock.socket = sock;
                     sock.ID = ID;
-                    
+					
                     if (servers[sock.ID] && servers[sock.ID].socket) {
                         servers[sock.ID].socket.destroy();
 					}
+                    sock.tried = false;
                     
                     servers[sock.ID] = { socket: sock, users: {} };
                     
@@ -456,7 +457,7 @@ function serverfunc(sock) {
     });
 	
     sock.on('connect', function() {
-		sock.tried = false;
+		
 		if (sock.ourconn) {
 			console.log('[GAME] We Connected, helloing ' + ((sock.remoteAddress || sock._remoteAddress) || sock._remoteAddress));
 			sock.SendTable([ 'hello', 0, CFG.SHARED_SECRET ]);
