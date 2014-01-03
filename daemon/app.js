@@ -107,17 +107,17 @@ var clients = {}; //authed web users
 var userids = 0; //unique id for each web user (some steamids/tokens may not be unique to 1 user)
 
 var nullbyte = Buffer(1);
-nullbyte.clear();
+nullbyte.fill('\0');
 
 net.Socket.prototype.SendTable = function(data) {
     try {
         var msg = JSON.stringify(data);
         var msg_z = new Buffer(msg.length + 1);
-        msg_z[msg_z.length - 1] = 0; // Since it doesn't guarantee it's all zeroes...
         msg_z.write(msg);
+        msg_z[msg_z.length - 1] = 0; // Since it doesn't guarantee it's all zeroes...
         this.write(msg_z);
     } catch (e) {
-        console.log('[GAME] ERROR: Couldn\'t send table: ' + e);
+        console.log("[GAME] ERROR: Couldn't send table: " + e);
     }
 };
 
@@ -329,21 +329,28 @@ function serverfunc(sock) {
         
             switch (sendtype) {
                 case 'hello':
-                    var serverid = String(data[1]);
+                    var ID = String(data[1]);
                     var serverpw = String(data[1]);
                     
                     clearTimeout(logintimeout);
                     sock.socket = sock;
-                    sock.serverid = serverid;
+                    sock.ID = ID;
                     
-                    if (servers[sock.serverid] && servers[sock.serverid].socket)
-                        servers[sock.serverid].socket.destroy();
+                    if (servers[sock.ID] && servers[sock.ID].socket) {
+                        servers[sock.ID].socket.destroy();
+						return;
+					}
                     
-                    servers[sock.serverid] = { socket: sock, users: {} };
+                    servers[sock.ID] = { socket: sock, users: {} };
                     
 
                     var count = 0;
                     for (client in clients) count++;
+					
+					if (!sock.ourconn) {
+						sock.SendTable([ 'hello', 0, CFG.SHARED_SECRET ]);
+					}
+					
                     sock.SendTable([ 'players', count ]);
                     
                     for (client in clients)
@@ -351,7 +358,7 @@ function serverfunc(sock) {
                         
                     sock.SendTable([ 'endburst' ]);
                     
-                    console.log('[GAME] ' + (sock.remoteAddress || sock._remoteAddress) + ' identified as server ' + sock.serverid);
+                    console.log('[GAME] ' + (sock.remoteAddress || sock._remoteAddress) + ' identified as server ' + sock.ID);
                     break;
                 
                 case 'players':
@@ -362,35 +369,38 @@ function serverfunc(sock) {
                     break;
                     
                 case 'say':
-                    var UserID = data[1];
+                    if (!sock.ID) { break; }
+					var UserID = data[1];
                     var txt = data[2];
-                    var usr = servers[sock.serverid].users[UserID];
+                    var usr = servers[sock.ID].users[UserID];
                     var Name = usr.Name || "PLAYER MISSING??";
                     
                     console.log('[GAME] ' + Name + ': ' + txt);
 					Twit(txt);
-                    io.sockets.in(sock.serverid).emit('chat', { server: parseInt(sock.serverid), name: Name, steamid: usr.SteamID, message: txt });
+                    io.sockets.in(sock.ID).emit('chat', { server: parseInt(sock.ID), name: Name, steamid: usr.SteamID, message: txt });
                     break;
                     
                 case 'join':
+                    if (!sock.ID) { break; }
                     var UserID = data[1];
                     var SteamID = data[2];
                     var Name = data[3];
                     
-                    servers[sock.serverid].users[UserID] = { SteamID: SteamID, Name: Name };
+                    servers[sock.ID].users[UserID] = { SteamID: SteamID, Name: Name };
                     console.log('[GAME] Player ' + Name + ' joined with steamid ' + SteamID);
-                    io.sockets.in(sock.serverid).emit('join', { server: parseInt(sock.serverid), name: Name, steamid: SteamID });
+                    io.sockets.in(sock.ID).emit('join', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
                     break;
                     
                 case 'leave':
+                    if (!sock.ID) { break; }
                     var UserID = data[1];
                     var SteamID = data[2];
-                    var usr = servers[sock.serverid].users[UserID];
+                    var usr = servers[sock.ID].users[UserID];
                     var Name = usr.Name || "PLAYER MISSING??";
                     
                     console.log('[GAME] Player ' + Name + ' left with steamid ' + SteamID);
-                    io.sockets.in(sock.serverid).emit('leave', { server: parseInt(sock.serverid), name: Name, steamid: SteamID });
-                    delete servers[sock.serverid].users[UserID];
+                    io.sockets.in(sock.ID).emit('leave', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
+                    delete servers[sock.ID].users[UserID];
                     break;
                 
                 default:
@@ -400,14 +410,28 @@ function serverfunc(sock) {
         }
     });
     
-    sock.on('disconnect', function() {
-        if (servers[sock.serverid])
-            delete servers[sock.serverid];
-        console.log('[GAME] ' + (sock.remoteAddress || sock._remoteAddress) + ' disconnected');
+    sock.on('end', function() {
+        if (servers[sock.ID]) {
+            delete servers[sock.ID];
+		};
+        console.log('[GAME] ' + (sock.remoteAddress || sock._remoteAddress) + ' disconnected!');
+		if (sock.ourconn) {
+			if (sock.tried) {
+				console.log('[GAME] Cancelling reconnect to server #'+sock.ID+"!");
+			} else {
+				console.log('[GAME] Reconnecting to server #'+sock.ID+"...");
+				link_server(i,true);
+			}
+		}
     });
     sock.on('connect', function() {
-        console.log('[GAME] Sending hello to ' + ((sock.remoteAddress || sock._remoteAddress) || sock._remoteAddress));
-		sock.SendTable([ 'hello', 0, CFG.SHARED_SECRET ]);
+		sock.tried = false;
+		if (sock.ourconn) {
+			console.log('[GAME] We Connected, helloing ' + ((sock.remoteAddress || sock._remoteAddress) || sock._remoteAddress));
+			sock.SendTable([ 'hello', 0, CFG.SHARED_SECRET ]);
+		} else {
+			console.log('[GAME] Got connection from ' + ((sock.remoteAddress || sock._remoteAddress) || sock._remoteAddress));
+		}
     });
 	
 }
@@ -415,17 +439,24 @@ net.createServer(serverfunc).listen(GAMEPORT, "0.0.0.0");
 
 var servers=CFG.servers;
 
-
-
-for (var i=0; i<servers.length; i++) {
-	var host = servers[i] [0];
-	var port = servers[i] [2];
+function link_server(i,tried) {
+	var host = servers[i][0];
+	var port = servers[i][2];
+	var ID 	 = servers[i][3];
 	if (host == undefined) continue;
 	console.log('[GAME] Connecting to '+ host + ':'+port);
     var client = net.createConnection(port,host);
 	client._remoteAddress = host;
 	client._remotePort = port;
+	client.ourconn = true;
+	client.ID = ID;
+	client.tried = tried;
 	serverfunc(client);
+};
+
+for (var i=0; i<servers.length; i++) {
+	link_server(i,false);
+	
 }
 
 
