@@ -422,21 +422,32 @@ function serverfunc(sock) {
             }
         }
     });
-    
-    sock.on('end', function() {
-        if (servers[sock.ID]) {
+    function server_sock_disconn(sock) {
+		if (servers[sock.ID]) {
             delete servers[sock.ID];
+		} else {
+			console.log('[GAME] Deleting non-existent #'+sock.ID);
 		};
+		
         console.log('[GAME] ' + (sock.remoteAddress || sock._remoteAddress) + ' disconnected!');
+		
 		if (sock.ourconn) {
 			if (sock.tried) {
 				console.log('[GAME] Cancelling reconnect to server #'+sock.ID+"!");
 			} else {
 				console.log('[GAME] Reconnecting to server #'+sock.ID+"...");
-				link_server(sock._i_index,true);
+				link_server(sock.serverinfo,true);
 			}
 		}
+	}
+	
+    sock.on('end', function() {
+        server_sock_disconn(sock);
     });
+    sock.on('close', function() {
+        server_sock_disconn(sock);
+    });
+	
     sock.on('connect', function() {
 		sock.tried = false;
 		if (sock.ourconn) {
@@ -452,25 +463,28 @@ net.createServer(serverfunc).listen(GAMEPORT, "0.0.0.0");
 
 var servers=CFG.servers;
 
-function link_server(i,tried) {
-	var host = servers[i][0];
-	var port = servers[i][2];
-	var ID 	 = servers[i][3];
-	if (host == undefined) { return; }
-	console.log('[GAME] Connecting to '+ host + ':'+port);
+function link_server(serverinfo,tried) {
+	var host = serverinfo[0];
+	
+	if (host == undefined) {
+		return; 
+	}
+	
+	var port = serverinfo[2];
+	var ID 	 = serverinfo[3];
+	console.log('[GAME] Connecting to server #'+ID +' on '+ host +':'+ port);
     var client = net.createConnection(port,host);
 	client._remoteAddress = host;
 	client._remotePort = port;
 	client.ourconn = true;
 	client.ID = ID;
-	client._i_index = i;
+	client.serverinfo = serverinfo;
 	client.tried = tried;
 	serverfunc(client);
 };
 
 for (var i=0; i<servers.length; i++) {
-	link_server(i,false);
-	
+	link_server(servers[i],false);
 }
 
 
