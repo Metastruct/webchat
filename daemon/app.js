@@ -339,7 +339,11 @@ function serverfunc(sock) {
                     var ID = String(data[1]);
                     var serverpw = String(data[1]);
                     
-					// TODO: Obey PASSWORD???
+					if ( (!sock.ourconn) && (serverpw != CFG.SHARED_SECRET) ) {
+						console.log('[GAME] Invalid hello password from ' + (sock.remoteAddress || sock._remoteAddress) + ': '+serverpw);
+						// TODO: Obey PASSWORD???
+					}
+					
 					
                     clearTimeout(logintimeout);
                     sock.socket = sock;
