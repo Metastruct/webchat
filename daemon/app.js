@@ -5,7 +5,7 @@
 // npm install net
 // npm install twitter
 
-require('buffertools');
+require('buffertools').extend();
 
 var fs = require("fs");
 
@@ -456,7 +456,7 @@ function link_server(i,tried) {
 	var host = servers[i][0];
 	var port = servers[i][2];
 	var ID 	 = servers[i][3];
-	if (host == undefined) continue;
+	if (host == undefined) { return; }
 	console.log('[GAME] Connecting to '+ host + ':'+port);
     var client = net.createConnection(port,host);
 	client._remoteAddress = host;
