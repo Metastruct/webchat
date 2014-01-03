@@ -433,7 +433,7 @@ function serverfunc(sock) {
 				console.log('[GAME] Cancelling reconnect to server #'+sock.ID+"!");
 			} else {
 				console.log('[GAME] Reconnecting to server #'+sock.ID+"...");
-				link_server(i,true);
+				link_server(sock._i_index,true);
 			}
 		}
     });
@@ -463,6 +463,7 @@ function link_server(i,tried) {
 	client._remotePort = port;
 	client.ourconn = true;
 	client.ID = ID;
+	client._i_index = i;
 	client.tried = tried;
 	serverfunc(client);
 };
