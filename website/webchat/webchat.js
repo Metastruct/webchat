@@ -1,3 +1,6 @@
+var chaturl = "http://metastruct.org/webchat";
+var chatserv = 'http://arsenic.iriz.uk.to:9080';
+
 function textToLink(text) {
     var exp = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
     return text.replace(exp, '<a href="$1" target="_blank">$1</a>'); 
@@ -6,7 +9,6 @@ function textToLink(text) {
 function escapeEntities(text) {
     return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-
 
 function NewMessage() {
 	var container = $('<tr />');
@@ -40,9 +42,9 @@ if ( typeof io == 'undefined' )
 } 
 
 if (token)
-    var socket = io.connect('http://arsenic.iriz.uk.to:9080');
+    var socket = io.connect(chatserv);
 else
-    window.location = "http://metastruct.org/webchat";
+    window.location = chaturl;
 
 	
 
@@ -51,7 +53,7 @@ socket.on('connect', function() {
     socket.emit('token', token);
     
     socket.on('invalidtoken', function() {
-        window.location = "http://metastruct.org/webchat";
+        window.location = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
     });
     
     socket.on('ready', function() {
