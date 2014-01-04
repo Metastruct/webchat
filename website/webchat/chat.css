@@ -1,16 +1,59 @@
-#chat p {
-    margin: 0 0 0 !important;
-    display: inline;
+
+.chattext tr td.join { color: #57E964; }
+
+.chattext tr td.leave { color: #C11B17; }
+
+.chattext tr td:nth-child(1) {
+	color: #888;
+}
+.chattext tr td:nth-child(2) {
+	color: #58e;
+}
+.chattext tr td:nth-child(4) {
+	color: #888;
+}		
+.chattext tr th {
+	text-align: left;
+	font-weight: normal;
 }
 
-#chat p.join, #chat p.leave { font-weight: bold; }
-
-#chat p.join { color: #57E964; }
-
-#chat p.leave { color: #C11B17; }
-
-#chat span.time {
-    font-size: 0.7em;
-    font-style: italic;
-    margin-right: 5px;
+.chattext .timebox {
+	color: red;
+	font-weight: normal;
+	float: right;
+	color: #888;
+}
+@media screen and (min-width: 600px) {
+	.chattext tr td:nth-child(1) {
+		vertical-align: top;
+	}
+	.chattext tr td:nth-child(2) {
+		text-align:right;
+		white-space: nowrap;
+		vertical-align: top;
+		border-right: 1px solid #eeeeee;
+		padding-right: 6px;
+	}
+	.chattext tr td:nth-child(3) {
+		vertical-align: top;
+	}
+}
+@media screen and (max-width: 600px) {
+	.chattext tr td:nth-child(1) {
+		display: inline;
+		float: left;
+	}
+	.chattext tr td:nth-child(2) {
+		display: inline;
+		float: left;
+		clear: right;
+	}
+	.chattext tr td:nth-child(3) {
+		float: left;
+		display: inline;
+	}
+	.chattext tr td:nth-child(4) {
+		display: inline;
+		float: right;
+	}
 }

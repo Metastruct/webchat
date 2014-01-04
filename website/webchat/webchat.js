@@ -7,12 +7,36 @@ function escapeEntities(text) {
     return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+
+function NewMessage() {
+	var container = $('<tr />');
+	var ServerBox = $('<td />');
+	var NickBox = $('<td />');
+	var MessageBox = $('<td />');
+	var TimeBox = $('<td />');
+	TimeBox.text( new Date().format('HH:MM:ss') );
+	container.append(ServerBox);
+	container.append(NickBox);
+	container.append(MessageBox);
+	container.append(TimeBox);
+	$("#chat").prepend(container.fadeIn(200));
+	$('#chat tr:nth-child(1000)').remove();
+	return {srv:ServerBox,nick:NickBox,msg:MessageBox,time:TimeBox};
+}
+
+function PrintInfo(message) {
+	var c = NewMessage();
+	c.time.text( new Date().format('HH:MM:ss') );
+	c.msg.text(message);
+	c.nick.text("<SYSTEM>");
+}
+
+PrintInfo("Connecting to server...");
+
 var token = window.location.hash.substring(1);
 if ( typeof io == 'undefined' )
 {
-	var div = $('<div>IO LIBRARY NOT LOADED. SERVER BROKEN!</div>');
-	$("#chat").prepend(div);
-
+	PrintInfo("IO LIBRARY NOT LOADED. SERVER BROKEN!");
 } 
 
 if (token)
@@ -21,8 +45,7 @@ else
     window.location = "http://metastruct.org/webchat";
 
 	
-var div = $('<div>Connecting...</div>');
-$("#chat").prepend(div);
+
 
 socket.on('connect', function() {
     socket.emit('token', token);
@@ -32,55 +55,60 @@ socket.on('connect', function() {
     });
     
     socket.on('ready', function() {
-        $("#chat").prepend('<div><p>Connected!</p></div>');
+        PrintInfo("Connected!");
         
         socket.on('chat', function(data) {
-            var div = $('<div></div>');
+			var c = NewMessage();
+			
+			c.msg.text(data.message);
+			c.srv.text('#' + ((data.server) ? data.server : 'WEB'));
+			
+            if (data.steamid) {
+				$('<a>',{	text: data.name,
+							target: "_blank",
+							href: 'http://steamcommunity.com/profiles/' + data.steamid,
+						}).appendTo(c.nick);
+            } else {
+				c.nick.text(data.name);
+			}
+			
+            c.msg.html(textToLink(escapeEntities(data.message)));
             
-            div.append('<span class="time">' + new Date().format('HH:MM:ss') + ' | #' + ((data.server) ? data.server : 'WEB') + '</span>');
-            
-            var p = $('<p class="message"></p>');
-            
-            if (data.steamid)
-                p.append('<a href="http://steamcommunity.com/profiles/' + data.steamid + '" target="_blank">' + escapeEntities(data.name) + '</a>: ');
-            else
-                p.append(escapeEntities(data.name) + ': ');
-            
-            p.append(textToLink(escapeEntities(data.message)));
-            
-            div.append(p);
-
-            $('#chat div:nth-child(1000)').remove();
-            $("#chat").prepend(div.fadeIn(200));
         });
         
         socket.on('join', function(data) {
-            var div = $('<div></div>');
-            
-            div.append('<span class="time">' + new Date().format('HH:MM:ss') + ' | #' + ((data.server) ? data.server : 'WEB') + '</span>');
-            
-            if (data.steamid)
-                div.append('<p class="join"><a href="http://steamcommunity.com/profiles/' + data.steamid + '" target="_blank">' + escapeEntities(data.name) + '</a> joined the server</p>');
-            else
-                div.append('<p class="join">' + escapeEntities(data.name) + ' joined the server</p>');
-            
-            $('#chat div:nth-child(1000)').remove();
-            
-            $("#chat").prepend(div.fadeIn(200));
+			var c = NewMessage();
+			
+			c.msg.text("Joined the server!");
+			c.msg.addClass('join');
+			c.srv.text('#' + ((data.server) ? data.server : 'WEB'));
+			
+            if (data.steamid) {
+				$('<a>',{	text: data.name,
+							target: "_blank",
+							href: 'http://steamcommunity.com/profiles/' + data.steamid,
+						}).appendTo(c.nick);
+            } else {
+				c.nick.text(data.name);
+			}
+			
         });
         
         socket.on('leave', function(data) {
-            var div = $('<div></div>');
-            
-            div.append('<span class="time">' + new Date().format('HH:MM:ss') + ' | #' + ((data.server) ? data.server : 'WEB') + '</span>');
-            
-            if (data.steamid)
-                div.append('<p class="leave"><a href="http://steamcommunity.com/profiles/' + data.steamid + '" target="_blank">' + escapeEntities(data.name) + '</a> left the server</p>');
-            else
-                div.append('<p class="leave">' + escapeEntities(data.name) + ' left the server</p>');
-            
-            $('#chat div:nth-child(1000)').remove();
-            $("#chat").prepend(div.fadeIn(200));
+			var c = NewMessage();
+			
+			c.msg.text("Left the server!");
+			c.msg.addClass('leave');
+			c.srv.text('#' + ((data.server) ? data.server : 'WEB'));
+			
+            if (data.steamid) {
+				$('<a>',{	text: data.name,
+							target: "_blank",
+							href: 'http://steamcommunity.com/profiles/' + data.steamid,
+						}).appendTo(c.nick);
+            } else {
+				c.nick.text(data.name);
+			}
         });
         
         $('form').submit(function(e) {
