@@ -30,7 +30,7 @@ function PrintInfo(message) {
 	var c = NewMessage();
 	c.time.text( new Date().format('HH:MM:ss') );
 	c.msg.text(message);
-	c.nick.text("<SYSTEM>");
+	c.nick.text("SYSTEM");
 }
 
 PrintInfo("Connecting to server...");
@@ -129,4 +129,16 @@ socket.on('connect', function() {
                 socket.emit('leave', parseInt($(this).data("server")));
         });
     });
+});
+
+
+
+
+socket.on('disconnect', function() {
+	PrintInfo('Server disconnected us.');
+});
+
+socket.on('error', function (e) {
+	PrintInfo(e ? e : 'A unknown error occurred.');
+	console.log('System', e ? e : 'A unknown error occurred');
 });
