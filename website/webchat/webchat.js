@@ -43,9 +43,10 @@ if ( typeof io == 'undefined' )
 
 if (token)
     var socket = io.connect(chatserv);
-else
-    window.location = chaturl;
-
+else {
+    PrintInfo("Forwarding to login...");
+	window.location = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
+}
 	
 
 
@@ -53,7 +54,8 @@ socket.on('connect', function() {
     socket.emit('token', token);
     
     socket.on('invalidtoken', function() {
-        window.location = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
+		PrintInfo("Token is invalid, Forwarding to login.");
+		window.location = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
     });
     
     socket.on('ready', function() {

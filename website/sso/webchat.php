@@ -1,4 +1,5 @@
 <?php
+
 error_reporting(E_ALL);
 ini_set('display_errors','On');
 	require_once('sso.php');
@@ -8,6 +9,10 @@ ini_set('display_errors','On');
 $S = sso::sso(); 
 
 $S->login(); // LOGIN ONLY
+
+header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
+header("Cache-Control: no-cache");
+header("Pragma: no-cache");
 
 function base64url_encode($data) { 
    return rtrim(strtr(base64_encode($data), '+/', '-_'), '='); 
@@ -58,5 +63,7 @@ if (!$fp) {
     fwrite($fp, $out);
     fclose($fp);
 }
+
 header("Location: http://metastruct.org/webchat/chat.html#" . $token);
+
 ?>
