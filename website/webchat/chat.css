@@ -31,11 +31,15 @@
 		text-align:right;
 		white-space: nowrap;
 		vertical-align: top;
-		border-right: 1px solid #eeeeee;
-		padding-right: 6px;
+		border-right: 6px solid transparent;
+		overflow: hidden;
+		max-width: 150px;
 	}
 	.chattext tr td:nth-child(3) {
 		vertical-align: top;
+	}
+	.chattext tr td:nth-child(4) {
+		border-left: 6px solid transparent;
 	}
 }
 @media screen and (max-width: 600px) {
@@ -47,6 +51,9 @@
 		display: inline;
 		float: left;
 		clear: right;
+	}
+	.chattext tr td:nth-child(2):after { 
+		content: ":";
 	}
 	.chattext tr td:nth-child(3) {
 		float: left;
