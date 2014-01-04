@@ -1,9 +1,7 @@
-#!/usr/bin/env node
 
 // npm install buffertools
 // npm install socket.io
 // npm install net
-// npm install twitter
 
 require('buffertools').extend();
 
@@ -11,90 +9,22 @@ var fs = require("fs");
 
 var CFG=require('./config.json');
 
+var plugins = CFG.plugins;
 
-// ==== TWITTER ====
-// Todo: move this to another file
-	var util = require('util'),
-		twitter = require('twitter');
-	var twit = new twitter({
-		consumer_key: CFG.consumer_key,
-		consumer_secret: CFG.consumer_secret,
-		access_token_key: CFG.access_token_key,
-		access_token_secret: CFG.access_token_secret
-	});
+var events = require('events');
+var hooks = new events.EventEmitter();
 
-	function Now() {
-		return Math.round((new Date()).getTime() / 1000);
+if (plugins) {
+	for (var i=0; i<plugins.length; i++) {
+		require(plugins[i])(hooks,CFG);
 	}
-
-	var LastTweet = 0;
-
-	function CanTweet() {
-		if (LastTweet<1) {
-			var lasttwit = require("./lasttwit.json");
-			LastTweet = lasttwit.LastTweet;
-		}
-		
-		if (LastTweet<1) return false;
-		
-		var day = 60*60*(24+1);
-		
-		return Now() - LastTweet > day;
-
-	}
-
-	function PreTweet( msg ) {
-		LastTweet = Now();
-		fs.writeFile( "lasttwit.json", JSON.stringify( { LastTweet: LastTweet, tweet: msg } ), "utf8", function() {} );
-	}
-
-
-	function RealTwit( msg ) {
-		if (!CanTweet()) return;
-		PreTweet( msg );
-		
-		twit.updateStatus( msg ,
-			function(data) {
-
-			}
-		);
-
-	}
-
-	function Tweetable(msg) {
-		if (msg.length>139) return false;
-		if (msg.length<5) return false;
-		if (msg.search("^[!\\.\\\\/]") == 0 ) return false; 
-		if (msg.search("[a-zA-Z]") == -1 ) return false; 
-		if (msg.indexOf("http://")>=0) return false;
-		if (msg.indexOf("https://")>=0) return false;
-		if (msg.indexOf(" ")==-1) return false;
-		
-		return true;
-	}
-
-	var cachegood = false;
-	function Twit( msg ) {
-		try { // secondary system, crash away if you need to
-
-			if (cachegood && CanTweet()) {
-				RealTwit( cachegood );
-				cachegood = false;
-			}
-			if (!cachegood && (typeof msg == 'string' || msg instanceof String)) {
-				if (Tweetable( msg )) {
-					cachegood = msg;
-				}
-			}
-		} catch (err) { }
-	}
-// ==== TWITTER END ====
+}
 
 
 var AUTHPORT = CFG.AUTHPORT;
 var WEBPORT = CFG.WEBPORT;
 var GAMEPORT = CFG.GAMEPORT;
-
+var TEAM_WEBCHAT = 1;
 var WHITELIST = CFG.WHITELIST;
 var AUTHSERVER = CFG.AUTHSERVER;
 //------
@@ -191,8 +121,9 @@ function onDisconnect(socket) {
 
 console.log('[WEB] Listening on port ' + WEBPORT);
 
+// webchat connect
 io.sockets.on('connection', function(socket) {
-    console.log('[WEB] Received connection from ' + socket.handshake.address.address);
+    console.log('[WEB] Connection from ' + socket.handshake.address.address);
     
     var tokentimeout = setTimeout(function() {
         if (typeof socket.handshake === "undefined") //the client doesn't exist anymore
@@ -204,12 +135,16 @@ io.sockets.on('connection', function(socket) {
     socket.on('token', function(token) {
         if (token && token.trim() != "" && tokens[token]) {
             clearTimeout(tokentimeout);
-            clients[token] = tokens[token]; //copy the steamid and name into connected clients
-            clients[token].userid = userids++;
+            
+			// check max duplicates
+			
+			clients[token] = tokens[token]; //copy the steamid and name into connected clients
+            clients[token].userid = userids++; // generate userid
+			
             socket.set('token', token); //used when disconnecting
             socket.emit('ready');
         } else {
-			console.log('[WEB] Disconnect due to invalid token: ' + socket.handshake.address.address );
+			console.log('[WEB] Invalid token from ' + socket.handshake.address.address );
             socket.emit('invalidtoken');
             socket.disconnect();
             return;
@@ -238,7 +173,9 @@ io.sockets.on('connection', function(socket) {
                 socket.join('2');
                 //socket.join('3');
                 
-                sendToServers(socket.id, [ 'join', clients[token].userid, clients[token].steamid, clients[token].name, 1 ]); //last arg is team
+				
+				
+                sendToServers(socket.id, [ 'join', clients[token].userid, clients[token].steamid, clients[token].name, TEAM_WEBCHAT ]); 
                 socket.broadcast.emit('join', { name: clients[token].name, steamid: clients[token].steamid });
                 
                 socket.on('join', function(data) {
@@ -254,8 +191,8 @@ io.sockets.on('connection', function(socket) {
                 socket.on('message', function(message) {
                     if (message.trim() == "") return;
                     console.log('[WEB] ' + name + ' (' + socket.handshake.address.address + '): ' + message);
-					Twit(message);
-
+					
+					hooks.emit('message',message,clients[token]);
                     sendToServers(socket.id, [ 'say', clients[token].userid, message ]); //have to assume it was sent D:
                     
                     for (room in io.sockets.manager.roomClients[socket.id])
@@ -341,7 +278,8 @@ function serverfunc(sock) {
                     
 					if ( (!sock.ourconn) && (serverpw != CFG.SHARED_SECRET) ) {
 						console.log('[GAME] Invalid hello password from ' + (sock.remoteAddress || sock._remoteAddress) + ': '+serverpw);
-						// TODO: Obey PASSWORD???
+						sock.destroy();
+						return;
 					}
 					
 					
@@ -367,7 +305,7 @@ function serverfunc(sock) {
                     sock.SendTable([ 'players', count ]);
                     
                     for (client in clients)
-                        sock.SendTable([ 'join', clients[client].userid, clients[client].steamid, clients[client].name, 1 ]);
+                        sock.SendTable([ 'join', clients[client].userid, clients[client].steamid, clients[client].name, TEAM_WEBCHAT ]);
                         
                     sock.SendTable([ 'endburst' ]);
                     
@@ -389,7 +327,9 @@ function serverfunc(sock) {
                     var Name = usr.Name || "PLAYER MISSING??";
                     
                     console.log('[GAME] ' + Name + ': ' + txt);
-					Twit(txt);
+					
+					hooks.emit('message',txt,usr);
+					
                     io.sockets.in(sock.ID).emit('chat', { server: parseInt(sock.ID), name: Name, steamid: usr.SteamID, message: txt });
                     break;
                     
@@ -423,6 +363,11 @@ function serverfunc(sock) {
                 case 'oob':
 					var msg = data[1];
 					console.log('[OOB] ' + msg);
+					break;
+                case 'blacklist':
+					var sid = data[1];
+					console.log('[BAN] Banning ' + sid);
+					//TODO: Blacklist(sid);
 					break;
                 default:
                     console.log('[GAME] Unhandled sendtype: ' + sendtype);
