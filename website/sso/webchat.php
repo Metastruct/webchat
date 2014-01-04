@@ -55,9 +55,9 @@ $personaname = $info['personaname'];
 
 $a = array($token,$steamid,$personaname);
 
-$fp = fsockopen("arsenic.iriz.uk.to", 18080, $errno, $errstr, 5);
+$fp = @fsockopen("arsenic.iriz.uk.to", 18080, $errno, $errstr, 5);
 if (!$fp) {
-    die("$errstr ($errno)<br />\n");
+    die("Sorry, but web chat is currently offline :(\n<br /><br /><br />\nInfo: $errstr ($errno)<br />\n");
 } else {
     $out = json_encode($a);
     fwrite($fp, $out);

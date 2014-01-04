@@ -439,7 +439,3 @@ function link_server(serverinfo,tried) {
 for (var i=0; i<servers.length; i++) {
 	link_server(servers[i],false);
 }
-
-
-
-
