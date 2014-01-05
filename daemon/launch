@@ -1,5 +1,5 @@
-#!/bin/sh
-while true;do
-	/usr/bin/node app.js
+#!/bin/bash
+while true; do
+	/usr/bin/node app.js && echo normal shutdown || (echo ABNORMAL TERMINATION >&2;echo "";sleep 3)
 	sleep 0.3
 done
