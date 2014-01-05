@@ -45,7 +45,7 @@ if (token)
     var socket = io.connect(chatserv);
 else {
     PrintInfo("Forwarding to login...");
-	window.location = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
+	window.location.href = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
 }
 	
 
@@ -55,7 +55,9 @@ socket.on('connect', function() {
     
     socket.on('invalidtoken', function() {
 		PrintInfo("Token is invalid, Forwarding to login.");
-		window.location = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
+		setInterval(function(){
+			window.location.href = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
+		},1500);
     });
     
     socket.on('ready', function() {

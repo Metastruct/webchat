@@ -5,6 +5,7 @@
 
 require('buffertools').extend();
 
+var util = require("util");
 var fs = require("fs");
 
 var CFG=require('./config.json');
@@ -76,14 +77,14 @@ net.createServer(function(sock) {
     sock.on('data', function(data) {
         try {
             var json = JSON.parse(data);
-            
+            var steamid = json[1];
             //token, steamid, name
             if (json[0] && json[1] && json[2]) {
-                tokens[json[0]] = { steamid: json[1], name: json[2] };
+                tokens[json[0]] = { steamid: steamid, name: json[2] };
                 console.log('[AUTH] Added '+steamid);
             }
         } catch(e) {
-            console.log('[AUTH] Received invalid data from ' + (sock.remoteAddress || sock._remoteAddress));
+            console.log('[AUTH] Invalid auth info from ' + (sock.remoteAddress || sock._remoteAddress)+': '+e);
             sock.destroy();
         }
     });
@@ -109,14 +110,16 @@ function onDisconnect(socket) {
 	console.log('[WEB] ' + socket.handshake.address.address + ' disconnected');
     socket.get('name', function(err, name) {
 		socket.get('token', function(err, token) {
-			if (clients[token]) {
+			if (token && clients[token]) {
 				sendToServers(socket.id, [ 'leave', clients[token].userid, clients[token].steamid ]);
 				socket.broadcast.emit('leave', { name: clients[token].name, steamid: clients[token].steamid });
 				
 				delete clients[token];
 				delete tokens[token];
 			}
-			console.log('[WEB]    ' + name + ' disconnected');
+			if (name) {
+				console.log('[WEB]    ' + name + ' disconnected');
+			}
 		});
     });
 }
@@ -271,7 +274,7 @@ function serverfunc(sock) {
             switch (sendtype) {
                 case 'hello':
                     var ID = String(data[1]);
-                    var serverpw = String(data[1]);
+                    var serverpw = String(data[2]);
                     
 					if ( (!sock.ourconn) && (serverpw != CFG.SHARED_SECRET) ) {
 						console.log('[GAME] Invalid hello password from ' + (sock.remoteAddress || sock._remoteAddress) + ': '+serverpw);
@@ -433,6 +436,7 @@ function link_server(serverinfo,tried) {
 	serverfunc(client);
 };
 
+// webchat remains always linked even with no players
 for (var i=0; i<servers.length; i++) {
 	link_server(servers[i],false);
 }
