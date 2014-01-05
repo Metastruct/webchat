@@ -80,7 +80,7 @@ net.createServer(function(sock) {
             //token, steamid, name
             if (json[0] && json[1] && json[2]) {
                 tokens[json[0]] = { steamid: json[1], name: json[2] };
-                console.log('[AUTH] Added token ' + json[0]);
+                console.log('[AUTH] Added '+steamid);
             }
         } catch(e) {
             console.log('[AUTH] Received invalid data from ' + (sock.remoteAddress || sock._remoteAddress));
@@ -96,26 +96,28 @@ function sendToServers(socketid, data) {
     for (var server in io.sockets.manager.roomClients[socketid]) {
         if (server == "") continue; //ignore the catch-all socket.io room
         var srv = servers[server.substring(1)]; //substring to remove the start /
-        if (srv) srv.socket.SendTable(data);
+        if (srv && srv.socket) {
+			srv.socket.SendTable(data);
+		} else {
+			console.log('[WEB] Unable to send to "'+server+'": '+util.inspect(data));
+		}
     }
 }
 
-
+// webchat client disconnects
 function onDisconnect(socket) {
+	console.log('[WEB] ' + socket.handshake.address.address + ' disconnected');
     socket.get('name', function(err, name) {
-        if (!name)
-            console.log('[WEB] ' + socket.handshake.address.address + ' disconnected');
-        else
-            socket.get('token', function(err, token) {
-                if (clients[token]) {
-                    sendToServers(socket.id, [ 'leave', clients[token].userid, clients[token].steamid ]);
-                    socket.broadcast.emit('leave', { name: clients[token].name, steamid: clients[token].steamid });
-                    
-                    delete clients[token];
-                    delete tokens[token];
-                }
-                console.log('[WEB] ' + name + ' disconnected');
-            });
+		socket.get('token', function(err, token) {
+			if (clients[token]) {
+				sendToServers(socket.id, [ 'leave', clients[token].userid, clients[token].steamid ]);
+				socket.broadcast.emit('leave', { name: clients[token].name, steamid: clients[token].steamid });
+				
+				delete clients[token];
+				delete tokens[token];
+			}
+			console.log('[WEB]    ' + name + ' disconnected');
+		});
     });
 }
 
@@ -152,7 +154,7 @@ io.sockets.on('connection', function(socket) {
         
         socket.set('name', clients[token].name, function() {
             socket.get('name', function(err, name) {
-                console.log('[WEB] User ' + name + ' connected with id ' + clients[token].userid);
+                console.log('[WEB] User ' + name + ' ('+clients[token].steamid+') connected with id ' + clients[token].userid);
                 
                 var allusers = {}; //tell the client who's connected both on web and games
                 
@@ -169,10 +171,10 @@ io.sockets.on('connection', function(socket) {
                 
                 delete allusers;
                 
+                
                 socket.join('1');
                 socket.join('2');
-                //socket.join('3');
-                
+                socket.join('3');
 				
 				
                 sendToServers(socket.id, [ 'join', clients[token].userid, clients[token].steamid, clients[token].name, TEAM_WEBCHAT ]); 
@@ -183,6 +185,7 @@ io.sockets.on('connection', function(socket) {
                     console.log('[WEB] ' + name + ' subscribed to server ' + data);
                 });
                 
+				
                 socket.on('leave', function(data) {
                     socket.leave(data);
                     console.log('[WEB] ' + name + ' unsubscribed from server ' + data);
@@ -190,7 +193,7 @@ io.sockets.on('connection', function(socket) {
                 
                 socket.on('message', function(message) {
                     if (message.trim() == "") return;
-                    console.log('[WEB] ' + name + ' (' + socket.handshake.address.address + '): ' + message);
+                    //console.log('[WEB] ' + name + ' (' + socket.handshake.address.address + '): ' + message);
 					
 					hooks.emit('message',message,clients[token]);
                     sendToServers(socket.id, [ 'say', clients[token].userid, message ]); //have to assume it was sent D:
@@ -201,13 +204,7 @@ io.sockets.on('connection', function(socket) {
             });
         });
     });
-    
-	socket.on('error', function(err) {
-		console.log('[GAME] ERROR: ' + err);
-
-		onDisconnect(socket);
-	});
-    
+        
     socket.on('disconnect', function() {
         onDisconnect(socket);
     });
@@ -326,7 +323,7 @@ function serverfunc(sock) {
                     var usr = servers[sock.ID].users[UserID];
                     var Name = usr.Name || "PLAYER MISSING??";
                     
-                    console.log('[GAME] ' + Name + ': ' + txt);
+                    //console.log('[GAME] ' + Name + ': ' + txt);
 					
 					hooks.emit('message',txt,usr);
 					
