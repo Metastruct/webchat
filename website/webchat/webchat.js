@@ -47,8 +47,6 @@ else {
     PrintInfo("Forwarding to login...");
 	window.location.href = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
 }
-	
-
 
 socket.on('connect', function() {
     socket.emit('token', token);
