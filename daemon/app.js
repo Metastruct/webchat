@@ -42,16 +42,13 @@ var clients = {}; //authed web users
 
 var userids = 0; //unique id for each web user (some steamids/tokens may not be unique to 1 user)
 
-var nullbyte = Buffer(1);
-nullbyte.fill('\0');
+var nullbyte = Buffer('\0');
 
 net.Socket.prototype.SendTable = function(data) {
     try {
         var msg = JSON.stringify(data);
-        var msg_z = new Buffer(msg.length + 1);
-        msg_z.write(msg);
-        msg_z[msg_z.length - 1] = 0; // Since it doesn't guarantee it's all zeroes...
-        this.write(msg_z);
+        var buf = new Buffer(msg+'\0');
+        this.write(buf);
     } catch (e) {
         console.log("[GAME] ERROR: Couldn't send table: " + e);
     }
