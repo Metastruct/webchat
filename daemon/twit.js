@@ -1,5 +1,5 @@
 
-
+var fs = require('fs');
 
 module.exports = function(hooks,CFG){
 
