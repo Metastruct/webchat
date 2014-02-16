@@ -41,8 +41,13 @@ if ( typeof io == 'undefined' )
 	PrintInfo("IO LIBRARY NOT LOADED. SERVER BROKEN!");
 } 
 
-if (token)
-    var socket = io.connect(chatserv);
+if (token) {
+    var socket = io.connect(chatserv,{
+		reconnect: false
+	});
+}
+	
+	
 else {
     PrintInfo("Forwarding to login...");
 	window.location.href = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
