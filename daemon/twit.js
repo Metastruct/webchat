@@ -1,5 +1,5 @@
 
-// npm install twitter
+
 
 module.exports = function(hooks,CFG){
 
@@ -37,13 +37,13 @@ module.exports = function(hooks,CFG){
 		fs.writeFile( "lasttwit.json", JSON.stringify( { LastTweet: LastTweet, tweet: msg } ), "utf8", function() {} );
 	};
 
-	function RealTwit( msg ) {
+	function DoTweet( msg ) {
 		if (!CanTweet()) return;
 		PreTweet( msg );
 		
-		twit.updateStatus( msg ,
+		twit.updateStatus( msg,
 			function(data) {
-
+				console.log("[Twitter] updateStatus: "+util.inspect(data));
 			}
 		);
 
@@ -61,23 +61,20 @@ module.exports = function(hooks,CFG){
 		return true;
 	};
 
-	var cachegood = false;
-	function Twit( msg ) {
-		try { // secondary system, crash away if you need to
-
-			if (cachegood && CanTweet()) {
-				RealTwit( cachegood );
-				cachegood = false;
-			}
-			if (!cachegood && (typeof msg == 'string' || msg instanceof String)) {
-				if (Tweetable( msg )) {
-					cachegood = msg;
-				}
-			}
-		} catch (err) { }
+	function OnMessage( msg ) {
+		if (CanTweet() && // should we tweet this one
+			(typeof msg == 'string' || msg instanceof String) &&
+			Tweetable( msg )) // is it something we want to tweet?
+		{
+			DoTweet( msg );
+		}
 	};
 	
 	hooks.on('message',function(msg,info){
-		Twit(msg);
+		try {
+			Tweet(msg);
+		} catch (err) { 
+			console.log("[Twitter] msg error: "+util.inspect(err));
+		}
 	});
 }
