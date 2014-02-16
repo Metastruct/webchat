@@ -72,7 +72,7 @@ module.exports = function(hooks,CFG){
 	
 	hooks.on('message',function(msg,info){
 		try {
-			Tweet(msg);
+			OnMessage(msg);
 		} catch (err) { 
 			console.log("[Twitter] msg error: "+util.inspect(err));
 		}
