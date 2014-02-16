@@ -12,11 +12,7 @@ done
 
 cd daemon || exit 1
 echo Prereqs...
-#rm -rf node_modules
-npm install socket.io  || exit 1
-npm install net  || exit 1
-npm install buffertools || exit 1
-npm install twitter || exit 1
+npm install
 
 echo Launching...
 nohup ./launch >/dev/null 2>/dev/null &

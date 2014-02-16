@@ -1,0 +1,43 @@
+{
+  "name": "webchat",
+  "preferGlobal": true,
+  "version": "0.3.0",
+  "author": "Meta Construct <metastruct@metastruct.uk.to>",
+  "description": "Meta Construct Web Chat",
+  "contributors": [ 
+    {
+      "name": "ukgamer",
+    },
+    {
+      "name": "Python1320",
+    } 
+  ],
+  "bin": {
+    "http-server": "./app.js"
+  },
+  "scripts": {
+    "start": "node ./launch"
+  },
+  "main": "./app.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Metastruct/webchat.git"
+  },
+  "keywords": [
+    "webchat",
+    "gmod",
+    "server"
+  ],
+  "dependencies" : {
+    "buffertools"   :  "2.0.1",
+    "socket.io" :  "0.9.16",
+    "net" :  "1.0.2",
+    "twitter"    :  "0.2.5"
+  },
+  "analyze": false,
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.6"
+  }
+}
+
