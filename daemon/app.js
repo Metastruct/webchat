@@ -1,8 +1,3 @@
-
-// npm install buffertools
-// npm install socket.io
-// npm install net
-
 require('buffertools').extend();
 
 var util = require("util");
@@ -97,7 +92,7 @@ function sendToServers(socketid, data) {
         if (srv && srv.socket) {
 			srv.socket.SendTable(data);
 		} else {
-			console.log('[WEB] Unable to send to "'+server+'": '+util.inspect(data));
+			console.log('[WEB] Unable to send to "'+server+'", server down?');
 		}
     }
 }
@@ -337,7 +332,7 @@ function serverfunc(sock) {
                     var Name = data[3];
                     
                     servers[sock.ID].users[UserID] = { SteamID: SteamID, Name: Name };
-                    console.log('#'+sock.ID+' ' + Name + ' joined (' + SteamID+ ')');
+                    //console.log('#'+sock.ID+' ' + Name + ' joined (' + SteamID+ ')');
                     io.sockets.in(sock.ID).emit('join', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
                     break;
                     
@@ -348,7 +343,7 @@ function serverfunc(sock) {
                     var usr = servers[sock.ID].users[UserID];
                     var Name = usr.Name || "PLAYER MISSING??";
                     
-                    console.log('#'+sock.ID+' ' + Name + ' left (' + SteamID+ ')');
+                    //console.log('#'+sock.ID+' ' + Name + ' left (' + SteamID+ ')');
                     io.sockets.in(sock.ID).emit('leave', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
                     delete servers[sock.ID].users[UserID];
                     break;
