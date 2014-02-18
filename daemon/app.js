@@ -110,7 +110,7 @@ function onDisconnect(socket) {
 	var name = clientdata.name;
 	console.log('[WEB] ' + name + ' ('+steamid+') disconnected');
 	
-	sendToServers(socket.id, [ 'leave', userid, steamid ]);
+	sendToServers(socket.id, [ 'leave', UserID, steamid ]);
 	socket.broadcast.emit('leave', { name: name, steamid: steamid });
 	
 	delete clients[UserID];
@@ -164,23 +164,14 @@ io.sockets.on('connection', function(socket) {
 		var name = clients[UserID].name;
 
 		console.log('[WEB] User ' + name + ' ('+steamid+') connected (userid ' + UserID+').');
-		
+
+		// todo: get rid of these. They work awfully bad. Clientside filtering rather...
 		socket.join('1');
 		socket.join('2');
 		socket.join('3');
 		
 		sendToServers(socket.id, [ 'join', UserID, steamid, name, TEAM_WEBCHAT ]); 
 		socket.broadcast.emit('join', { name: clients[UserID].name, steamid: clients[UserID].steamid });
-		
-		socket.on('join', function(data) {
-			socket.join(data);
-			console.log('[WEB] ' + name + ' subscribed to server ' + data);
-		});
-		
-		socket.on('leave', function(data) {
-			socket.leave(data);
-			console.log('[WEB] ' + name + ' unsubscribed from server ' + data);
-		});
 		
 		socket.on('message', function(message) {
 			if (message.trim() == "") {
@@ -221,7 +212,6 @@ function ParseReceivedData(sock,data) {
 				return;
 			}
 			
-			
 			clearTimeout(sock.logintimeout);
 			sock.socket = sock;
 			sock.ID = ID;
@@ -261,7 +251,9 @@ function ParseReceivedData(sock,data) {
 			break;
 			
 		case 'say':
-			if (!sock.ID) { break; }
+			if (!sock.ID) {
+				break; 
+			}
 			var UserID = data[1];
 			var txt = data[2];
 			var usr = servers[sock.ID].users[UserID];
@@ -376,8 +368,13 @@ function serverfunc(sock) {
                 sock.destroy();
                 return;
             }
-            
-            ParseReceivedData(sock,data);
+            try {
+				ParseReceivedData(sock,data);
+			} catch(error) {
+				console.log("[GAME] ParseReceivedData: " + error);
+				console.log(error.stack);
+				server_sock_disconn(sock);
+			}
         }
     });
     function server_sock_disconn(sock) {
