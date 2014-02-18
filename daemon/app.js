@@ -34,8 +34,9 @@ io.set('log level', 1);
 var servers = {}; //sockets of game servers that are currently connected
 var tokens = {}; //valid user tokens
 var clients = {}; //authed web users
+var socketdata = {};
 
-var userids = 0; //unique id for each web user (some steamids/tokens may not be unique to 1 user)
+var current_userid = 0; //unique id for each web user (some steamids/tokens may not be unique to 1 user)
 
 var nullbyte = Buffer('\0');
 
@@ -99,21 +100,22 @@ function sendToServers(socketid, data) {
 
 // webchat client disconnects
 function onDisconnect(socket) {
-	console.log('[WEB] ' + socket.handshake.address.address + ' disconnected');
-    socket.get('name', function(err, name) {
-		socket.get('token', function(err, token) {
-			if (token && clients[token]) {
-				sendToServers(socket.id, [ 'leave', clients[token].userid, clients[token].steamid ]);
-				socket.broadcast.emit('leave', { name: clients[token].name, steamid: clients[token].steamid });
-				
-				delete clients[token];
-				delete tokens[token];
-			}
-			if (name) {
-				console.log('[WEB]    ' + name + ' disconnected');
-			}
-		});
-    });
+	var clientdata = socketdata[socket];
+	if (!clientdata) {
+		console.log('[WEB] ' + socket.handshake.address.address + ' disconnected');
+		return;
+	}
+	var UserID = clientdata.userid;
+	var steamid = clientdata.steamid;
+	var name = clientdata.name;
+	console.log('[WEB] ' + name + ' ('+steamid+') disconnected');
+	
+	sendToServers(socket.id, [ 'leave', userid, steamid ]);
+	socket.broadcast.emit('leave', { name: name, steamid: steamid });
+	
+	delete clients[UserID];
+	delete socketdata[socket];
+	
 }
 
 console.log('[WEB] Listening on port ' + WEBPORT);
@@ -130,15 +132,26 @@ io.sockets.on('connection', function(socket) {
     }, 5000); //if they haven't sent a token in 5 secs d/c them
     
     socket.on('token', function(token) {
-        if (token && token.trim() != "" && tokens[token]) {
+        var UserID = false;
+		var tokendata = token && token.trim() != "" && tokens[token];
+		if (tokendata) {
+			delete tokens[token];
             clearTimeout(tokentimeout);
             
-			// check max duplicates
+			// TODO: steamid usercount check
+			// something else ???
 			
-			clients[token] = tokens[token]; //copy the steamid and name into connected clients
-            clients[token].userid = userids++; // generate userid
+			current_userid++;
+            UserID = current_userid;
+			var clientdata = {};
+			clients[UserID] = clientdata;
+			clientdata.userid = UserID;
+			clientdata.UserID = UserID;
+			clientdata.name = tokendata.name; 
+			clientdata.steamid = tokendata.steamid;
+			clientdata.socket = socket;
+			socketdata[socket] = clientdata;
 			
-            socket.set('token', token); //used when disconnecting
             socket.emit('ready');
         } else {
 			console.log('[WEB] Invalid token from ' + socket.handshake.address.address );
@@ -146,58 +159,43 @@ io.sockets.on('connection', function(socket) {
             socket.disconnect();
             return;
         }
-        
-        socket.set('name', clients[token].name, function() {
-            socket.get('name', function(err, name) {
-                console.log('[WEB] User ' + name + ' ('+clients[token].steamid+') connected with id ' + clients[token].userid);
-                
-                var allusers = {}; //tell the client who's connected both on web and games
-                
-                for (var client in clients)
-                    allusers[clients[client].name] = clients[client].steamid;
-                    
-                for (var server in servers) { //not working wat
-                    for (var client in servers[server].users) {
-                        allusers[servers[server].users[client].name] = servers[server].users[client].steamid;
-                    }
-                }
-                
-                socket.emit('list', allusers);
-                
-                delete allusers;
-                
-                
-                socket.join('1');
-                socket.join('2');
-                socket.join('3');
-				
-				
-                sendToServers(socket.id, [ 'join', clients[token].userid, clients[token].steamid, clients[token].name, TEAM_WEBCHAT ]); 
-                socket.broadcast.emit('join', { name: clients[token].name, steamid: clients[token].steamid });
-                
-                socket.on('join', function(data) {
-                    socket.join(data);
-                    console.log('[WEB] ' + name + ' subscribed to server ' + data);
-                });
-                
-				
-                socket.on('leave', function(data) {
-                    socket.leave(data);
-                    console.log('[WEB] ' + name + ' unsubscribed from server ' + data);
-                });
-                
-                socket.on('message', function(message) {
-                    if (message.trim() == "") return;
-                    //console.log('[WEB] ' + name + ' (' + socket.handshake.address.address + '): ' + message);
-					
-					hooks.emit('message',message,clients[token]);
-                    sendToServers(socket.id, [ 'say', clients[token].userid, message ]); //have to assume it was sent D:
-                    
-                    for (room in io.sockets.manager.roomClients[socket.id])
-                        io.sockets.in(room).emit('chat', { name: name, steamid: clients[token].steamid, message: message });
-                });
-            });
-        });
+
+		var steamid = clients[UserID].steamid;
+		var name = clients[UserID].name;
+
+		console.log('[WEB] User ' + name + ' ('+steamid+') connected (userid ' + UserID+').');
+		
+		socket.join('1');
+		socket.join('2');
+		socket.join('3');
+		
+		sendToServers(socket.id, [ 'join', UserID, steamid, name, TEAM_WEBCHAT ]); 
+		socket.broadcast.emit('join', { name: clients[UserID].name, steamid: clients[UserID].steamid });
+		
+		socket.on('join', function(data) {
+			socket.join(data);
+			console.log('[WEB] ' + name + ' subscribed to server ' + data);
+		});
+		
+		socket.on('leave', function(data) {
+			socket.leave(data);
+			console.log('[WEB] ' + name + ' unsubscribed from server ' + data);
+		});
+		
+		socket.on('message', function(message) {
+			if (message.trim() == "") {
+				return;
+			}
+			//console.log('[WEB] ' + name + ' (' + socket.handshake.address.address + '): ' + message);
+			
+			hooks.emit('message',message,clients[UserID]);
+			sendToServers(socket.id, [ 'say', UserID, message ]);
+			
+			for (room in io.sockets.manager.roomClients[socket.id]) {
+				io.sockets.in(room).emit('chat', { name: name, steamid: steamid, message: message });
+			};
+		});
+
     });
         
     socket.on('disconnect', function() {
@@ -208,6 +206,124 @@ io.sockets.on('connection', function(socket) {
 //---GAME SERVER---
 
 console.log('[GAME] Listening on port ' + GAMEPORT);
+
+function ParseReceivedData(sock,data) {
+	var sendtype = data[0];
+
+	switch (sendtype) {
+		case 'hello':
+			var ID = String(data[1]);
+			var serverpw = String(data[2]);
+			
+			if ( (!sock.ourconn) && (serverpw != CFG.SHARED_SECRET) ) {
+				console.log('[GAME] Invalid hello password from ' + (sock.remoteAddress || sock._remoteAddress) + ': '+serverpw);
+				sock.destroy();
+				return;
+			}
+			
+			
+			clearTimeout(sock.logintimeout);
+			sock.socket = sock;
+			sock.ID = ID;
+			
+			if (servers[sock.ID] && servers[sock.ID].socket) {
+				servers[sock.ID].socket.destroy();
+			}
+			sock.tried = false;
+			
+			servers[sock.ID] = { socket: sock, users: {} };
+			
+
+			var count = 0;
+			for (client in clients) count++;
+			
+			if (!sock.ourconn) {
+				sock.SendTable([ 'hello', 0, CFG.SHARED_SECRET ]);
+			}
+			
+			sock.SendTable([ 'players', count ]);
+			
+			for (client in clients) {
+				var dat = clients[client];
+				sock.SendTable([ 'join', dat.userid, dat.steamid, dat.name, TEAM_WEBCHAT ]);
+			}
+			
+			sock.SendTable([ 'endburst' ]);
+			
+			console.log('[GAME] ' + (sock.remoteAddress || sock._remoteAddress) + ' identified as server ' + sock.ID);
+			break;
+		
+		case 'players':
+			break;
+		
+		case 'endburst':
+			sock.endburst = true;
+			break;
+			
+		case 'say':
+			if (!sock.ID) { break; }
+			var UserID = data[1];
+			var txt = data[2];
+			var usr = servers[sock.ID].users[UserID];
+			if (usr) {
+				var Name = usr.Name || "PLAYER MISSING??";
+				
+				//console.log('[GAME] ' + Name + ': ' + txt);
+				
+				hooks.emit('message',txt,usr);
+				
+				io.sockets.in(sock.ID).emit('chat', { server: parseInt(sock.ID), name: Name, steamid: usr.SteamID, message: txt });
+			} else {
+				console.trace('PROTOCOL VIOLATION: Server #'+sock.ID+' sent say event for UserID ' + UserID + ', but that userid does not exist!?');
+			}
+		
+			break;
+			
+		case 'join':
+			if (!sock.ID) { break; }
+			var UserID = data[1];
+			var SteamID = data[2];
+			var Name = data[3];
+			
+			servers[sock.ID].users[UserID] = { SteamID: SteamID, Name: Name };
+			//console.log('#'+sock.ID+' ' + Name + ' joined (' + SteamID+ ')');
+			io.sockets.in(sock.ID).emit('join', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
+			break;
+			
+		case 'leave':
+			if (!sock.ID) { break; }
+			var UserID = data[1];
+			var SteamID = data[2];
+			var usr = servers[sock.ID].users[UserID];
+			if (usr) {
+				var Name = usr.Name || "PLAYER MISSING??";
+			
+				//console.log('#'+sock.ID+' ' + Name + ' left (' + SteamID+ ')');
+				io.sockets.in(sock.ID).emit('leave', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
+				delete servers[sock.ID].users[UserID];
+			} else {
+				console.trace('PROTOCOL VIOLATION: Server #'+sock.ID+' sent leave event for UserID ' + UserID + ', but that userid does not exist!?');
+			}
+			break;
+		
+		case 'partyline':
+			var msg = data[1];
+			console.log('[PARTYLINE #'+sock.ID+'] ' + msg);
+			break;
+		case 'oob':
+			var msg = data[1];
+			console.log('[OOB] ' + msg);
+			break;
+		case 'blacklist':
+			var sid = data[1];
+			console.log('[BAN] Banning ' + sid);
+			//TODO: Blacklist(sid);
+			break;
+		default:
+			console.log('[GAME] Unhandled sendtype: ' + sendtype);
+			break;
+	}
+}
 
 function serverfunc(sock) {
     if (!sock.ourconn) {
@@ -226,7 +342,7 @@ function serverfunc(sock) {
     
     
     var logintimeout = setTimeout(function() { sock.destroy(); }, 5000);
-    
+    sock.logintimeout=logintimeout;
     sock.endburst = false;
     var databuff = false;
     
@@ -261,114 +377,7 @@ function serverfunc(sock) {
                 return;
             }
             
-            var sendtype = data[0];
-        
-            switch (sendtype) {
-                case 'hello':
-                    var ID = String(data[1]);
-                    var serverpw = String(data[2]);
-                    
-					if ( (!sock.ourconn) && (serverpw != CFG.SHARED_SECRET) ) {
-						console.log('[GAME] Invalid hello password from ' + (sock.remoteAddress || sock._remoteAddress) + ': '+serverpw);
-						sock.destroy();
-						return;
-					}
-					
-					
-                    clearTimeout(logintimeout);
-                    sock.socket = sock;
-                    sock.ID = ID;
-					
-                    if (servers[sock.ID] && servers[sock.ID].socket) {
-                        servers[sock.ID].socket.destroy();
-					}
-                    sock.tried = false;
-                    
-                    servers[sock.ID] = { socket: sock, users: {} };
-                    
-
-                    var count = 0;
-                    for (client in clients) count++;
-					
-					if (!sock.ourconn) {
-						sock.SendTable([ 'hello', 0, CFG.SHARED_SECRET ]);
-					}
-					
-                    sock.SendTable([ 'players', count ]);
-                    
-                    for (client in clients)
-                        sock.SendTable([ 'join', clients[client].userid, clients[client].steamid, clients[client].name, TEAM_WEBCHAT ]);
-                        
-                    sock.SendTable([ 'endburst' ]);
-                    
-                    console.log('[GAME] ' + (sock.remoteAddress || sock._remoteAddress) + ' identified as server ' + sock.ID);
-                    break;
-                
-                case 'players':
-                    break;
-                
-                case 'endburst':
-                    sock.endburst = true;
-                    break;
-                    
-                case 'say':
-                    if (!sock.ID) { break; }
-					var UserID = data[1];
-                    var txt = data[2];
-                    var usr = servers[sock.ID].users[UserID];
-                    var Name = usr.Name || "PLAYER MISSING??";
-                    
-                    //console.log('[GAME] ' + Name + ': ' + txt);
-					
-					hooks.emit('message',txt,usr);
-					
-                    io.sockets.in(sock.ID).emit('chat', { server: parseInt(sock.ID), name: Name, steamid: usr.SteamID, message: txt });
-                    break;
-                    
-                case 'join':
-                    if (!sock.ID) { break; }
-                    var UserID = data[1];
-                    var SteamID = data[2];
-                    var Name = data[3];
-                    
-                    servers[sock.ID].users[UserID] = { SteamID: SteamID, Name: Name };
-                    //console.log('#'+sock.ID+' ' + Name + ' joined (' + SteamID+ ')');
-                    io.sockets.in(sock.ID).emit('join', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
-                    break;
-                    
-                case 'leave':
-                    if (!sock.ID) { break; }
-                    var UserID = data[1];
-                    var SteamID = data[2];
-                    var usr = servers[sock.ID].users[UserID];
-                    if (usr) {
-						var Name = usr.Name || "PLAYER MISSING??";
-                    
-						//console.log('#'+sock.ID+' ' + Name + ' left (' + SteamID+ ')');
-						io.sockets.in(sock.ID).emit('leave', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
-						delete servers[sock.ID].users[UserID];
-					} else {
-						console.trace('PROTOCOL VIOLATION: Server #'+sock.ID+' sent leave event for UserID ' + UserID + ', but that userid does not exist!?');
-					}
-                    break;
-                
-                case 'partyline':
-					var msg = data[1];
-					console.log('[PARTYLINE #'+sock.ID+'] ' + msg);
-					break;
-                case 'oob':
-					var msg = data[1];
-					console.log('[OOB] ' + msg);
-					break;
-                case 'blacklist':
-					var sid = data[1];
-					console.log('[BAN] Banning ' + sid);
-					//TODO: Blacklist(sid);
-					break;
-                default:
-                    console.log('[GAME] Unhandled sendtype: ' + sendtype);
-                    break;
-            }
+            ParseReceivedData(sock,data);
         }
     });
     function server_sock_disconn(sock) {
