@@ -105,13 +105,18 @@ function onDisconnect(socket) {
 		console.log('[WEB] ' + socket.handshake.address.address + ' disconnected');
 		return;
 	}
+	
 	var UserID = clientdata.userid;
+	assert(clients[UserID] == clientdata);
+	
 	var steamid = clientdata.steamid;
 	var name = clientdata.name;
 	console.log('[WEB] ' + name + ' ('+steamid+') disconnected');
 	
 	sendToServers(socket.id, [ 'leave', UserID, steamid ]);
 	socket.broadcast.emit('leave', { name: name, steamid: steamid });
+	
+	socket.disconnect();
 	
 	delete clients[UserID];
 	delete socketdata[socket];
