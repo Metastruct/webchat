@@ -341,11 +341,15 @@ function serverfunc(sock) {
                     var UserID = data[1];
                     var SteamID = data[2];
                     var usr = servers[sock.ID].users[UserID];
-                    var Name = usr.Name || "PLAYER MISSING??";
+                    if (usr) {
+						var Name = usr.Name || "PLAYER MISSING??";
                     
-                    //console.log('#'+sock.ID+' ' + Name + ' left (' + SteamID+ ')');
-                    io.sockets.in(sock.ID).emit('leave', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
-                    delete servers[sock.ID].users[UserID];
+						//console.log('#'+sock.ID+' ' + Name + ' left (' + SteamID+ ')');
+						io.sockets.in(sock.ID).emit('leave', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
+						delete servers[sock.ID].users[UserID];
+					} else {
+						console.trace('PROTOCOL VIOLATION: Server #'+sock.ID+' sent leave event for UserID ' + UserID + ', but that userid does not exist!?');
+					}
                     break;
                 
                 case 'partyline':
