@@ -2,6 +2,7 @@ require('buffertools').extend();
 
 var util = require("util");
 var fs = require("fs");
+var assert = require("assert");
 
 var CFG=require('./config.json');
 
