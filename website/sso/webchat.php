@@ -1,10 +1,8 @@
 <?php
 
-error_reporting(E_ALL);
-ini_set('display_errors','On');
+//error_reporting(E_ALL);ini_set('display_errors','On');
 	require_once('sso.php');
-error_reporting(E_ALL);
-ini_set('display_errors','On');
+//error_reporting(E_ALL);ini_set('display_errors','On');
 
 $S = sso::sso(); 
 
@@ -55,15 +53,24 @@ $personaname = $info['personaname'];
 
 $a = array($token,$steamid,$personaname);
 
-$fp = @fsockopen("arsenic.iriz.uk.to", 18080, $errno, $errstr, 5);
-if (!$fp) {
-    die("Sorry, but web chat is currently offline :(\n<br /><br /><br />\nInfo: $errstr ($errno)<br />\n");
-} else {
-    $out = json_encode($a);
-    fwrite($fp, $out);
-    fclose($fp);
+
+$data = array('data' => json_encode($a));
+
+// use key 'http' even if you send the request to https://...
+$options = array(
+    'http' => array(
+        'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+        'method'  => 'POST',
+        'content' => http_build_query($data),
+    ),
+);
+$context  = stream_context_create($options);
+$result = file_get_contents("http://sso.metastruct.uk.to/rocket/webchat.py", false, $context);
+
+if ($result!="OK") {
+    die("Sorry, but web chat is currently offline :(\n<br /><br />\n");
 }
 
-header("Location: http://metastruct.org/webchat/chat.html#" . $token);
+header("Location: http://metastruct.org/webchat/chat.html#" . $token,TRUE,307);
 
 ?>
