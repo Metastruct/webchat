@@ -21,8 +21,8 @@ function NewMessage() {
 	container.append(NickBox);
 	container.append(MessageBox);
 	container.append(TimeBox);
-	$("#chat").prepend(container.fadeIn(200));
-	$('#chat tr:nth-child(1000)').remove();
+	$(".chat").prepend(container.fadeIn(200));
+	$('.chat tr:nth-child(1000)').remove();
 	return {srv:ServerBox,nick:NickBox,msg:MessageBox,time:TimeBox};
 }
 
@@ -88,7 +88,7 @@ socket.on('connect', function() {
         socket.on('join', function(data) {
 			var c = NewMessage();
 			
-			c.msg.text("Joined the server!");
+			c.msg.text("joined the server!");
 			c.msg.addClass('join');
 			c.srv.text('#' + ((data.server) ? data.server : 'WEB'));
 			
@@ -106,7 +106,7 @@ socket.on('connect', function() {
         socket.on('leave', function(data) {
 			var c = NewMessage();
 			
-			c.msg.text("Left the server!");
+			c.msg.text("left the server!");
 			c.msg.addClass('leave');
 			c.srv.text('#' + ((data.server) ? data.server : 'WEB'));
 			
@@ -122,9 +122,9 @@ socket.on('connect', function() {
         
         $('form').submit(function(e) {
             e.preventDefault();
-            if ($('#chattext').val().trim() == "") return;
-            socket.emit('message', $('#chattext').val());
-            $('#chattext').val('');
+            if ($('#chatinput').val().trim() == "") return;
+            socket.emit('message', $('#chatinput').val());
+            $('#chatinput').val('');
         });
         
         $("input[type=checkbox]").change(function() {

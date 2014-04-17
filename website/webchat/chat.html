@@ -1,37 +1,36 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta charset="UTF-8">
+        <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black">
         <title>Metastruct Web Chat</title>
-        <link href="/assets/css/bootstrap.min.css" rel="stylesheet">
-        <link href="/assets/css/bootstrap-responsive.min.css" rel="stylesheet">
-        <link href="chat.css" rel="stylesheet">
+
+        <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="chat.css">
     </head>
     <body>
-        <div class="navbar navbar-inverse navbar-static-top">
-            <div class="navbar-inner">
-                <div class="container">
-                    <a class="brand" href="/"><i class="icon-chevron-left icon-white"></i> Metastruct</a>
-                </div>
-            </div>
-        </div>
-        
         <div class="container">
             <div class="row">
-                <div class="span12">
-                    <form class="form-inline" action="javascript:void 0;">
-                        <input class="input-xxlarge" id="chattext" type="text">
-                        <input type="submit" value="Send" class="btn" id="chatsend">
-                        <label class="checkbox inline">
+                <div class="col-md-12">
+                    <form class="form-inline" action="">
+                    	<div class="col-md-6">
+						    <div class="input-group">
+						      	<input class="form-control" id="chatinput" type="text">
+						      	<span class="input-group-btn">
+						        	<button class="btn btn-default" type="button"><span class="glyphicon glyphicon-share-alt"></span></button>
+					        	</span>
+							</div>
+						</div>
+
+                        <label class="checkbox-inline">
                             <input type="checkbox" id="chkserver1" checked="true" data-server="1"> #1
                         </label>
-                        <label class="checkbox inline">
+                        <label class="checkbox-inline">
                             <input type="checkbox" id="chkserver2" checked="true" data-server="2"> #2
                         </label>
-                        <label class="checkbox inline">
+                        <label class="checkbox-inline">
                             <input type="checkbox" id="chkserver3" checked="true" data-server="3"> #3
                         </label>
                     </form>
@@ -39,21 +38,20 @@
             </div>
             
             <div class="row">
-                <div class="span12">
-                   <table border="0" id="chat" class="chattext">
-				   </table>
+                <div class="col-md-12">
+                   <table class="chat"></table>
 			   </div>
             </div>
             
             <hr>
             
-            <footer>&copy; Metastruct 2014 by <a href="http://ryan-o.co.uk" target="_blank">ukgamer</a>,Python1320</footer>
+            <footer>&copy; Metastruct 2014 by <a href="http://ryan-o.co.uk" target="_blank">ukgamer</a>, Python1320</footer>
         </div>
         
         <script src="http://code.jquery.com/jquery-latest.js"></script>
-        <script src="/assets/js/bootstrap.min.js"></script>
+        <script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
         <script src="http://stevenlevithan.com/assets/misc/date.format.js"></script>
         <script src="http://arsenic.iriz.uk.to:9080/socket.io/socket.io.js.min"></script>
-        <script src="webchat.js"></script>
+        <!--<script src="webchat.js"></script>-->
     </body>
 </html>
