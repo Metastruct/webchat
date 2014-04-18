@@ -110,27 +110,19 @@ function sendToServers(socketid, data) {
 }
 
 // webchat client disconnects
-function onDisconnect(socket) {
-	var clientdata = socketdata[socket];
-	if (!clientdata) {
-		console.log('[WEB] ' + socket.handshake.address.address + ' disconnected');
-		return;
-	}
+function onDisconnect(socket,UserID) {
+	var clientdata = clients[UserID];
 	
-	var UserID = clientdata.userid;
-	assert(clients[UserID] == clientdata);
+	assert(clientdata,"the hell!?");
 	
 	var steamid = clientdata.steamid;
 	var name = clientdata.name;
-	console.log('[WEB] ' + name + ' ('+steamid+') disconnected');
+	console.log('[WEB] ' + name + ' ('+steamid+') disconnected (uid '+UserID+')');
 	
 	sendToServers(socket.id, [ 'leave', UserID, steamid ]);
 	socket.broadcast.emit('leave', { name: name, steamid: steamid });
-	
-	socket.disconnect();
-	
+		
 	delete clients[UserID];
-	delete socketdata[socket];
 	
 }
 
@@ -138,15 +130,16 @@ console.log('[WEB] Listening on port ' + WEBPORT);
 
 // webchat connect
 io.sockets.on('connection', function(socket) {
-    console.log('[WEB] Connection from ' + socket.handshake.address.address);
     
     var tokentimeout = setTimeout(function() {
-        if (typeof socket.handshake === "undefined") //the client doesn't exist anymore
-            return;
-        else
-            socket.disconnect();
+        if (typeof socket.handshake === "undefined") {
+			return;
+        } else {
+            console.log('[WEB] ' + socket.handshake.address.address + ' timed out before auth');
+			socket.disconnect();
+		}
     }, 5000); //if they haven't sent a token in 5 secs d/c them
-    
+    	
     socket.on('token', function(token) {
         var UserID = false;
 		var tokendata = token && token.trim() != "" && tokens[token];
@@ -166,7 +159,6 @@ io.sockets.on('connection', function(socket) {
 			clientdata.name = tokendata.name; 
 			clientdata.steamid = tokendata.steamid;
 			clientdata.socket = socket;
-			socketdata[socket] = clientdata;
 			
             socket.emit('ready');
         } else {
@@ -179,7 +171,7 @@ io.sockets.on('connection', function(socket) {
 		var steamid = clients[UserID].steamid;
 		var name = clients[UserID].name;
 
-		console.log('[WEB] User ' + name + ' ('+steamid+') connected (userid ' + UserID+').');
+		console.log('[WEB] ' + name + ' ('+steamid+') connected (userid ' + UserID+').');
 
 		// todo: get rid of these. They work awfully bad. Clientside filtering rather...
 		socket.join('1');
@@ -203,11 +195,11 @@ io.sockets.on('connection', function(socket) {
 			};
 		});
 
+		socket.on('disconnect', function() {
+			onDisconnect(socket,UserID);
+		});
     });
         
-    socket.on('disconnect', function() {
-        onDisconnect(socket);
-    });
 });
 
 //---GAME SERVER---
