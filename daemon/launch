@@ -9,6 +9,17 @@ do
 done
 
 while true; do
-	/usr/bin/node app.js && echo normal shutdown || (echo ABNORMAL TERMINATION >&2;echo "";sleep 3)
-	sleep 0.3
+	/usr/bin/node app.js > console.log 2>&1
+	OUT=$?
+	if [ $OUT -ne 0 ];then
+		crashfile="crash_`date +%s`.log"
+		tail -n 50 console.log >> "$crashfile"
+		echo "Server exited with code $OUT" | tee -a "$crashfile"
+		sleep 10
+		
+	else
+		echo "Restarting"
+		sleep 1
+	fi
+
 done
