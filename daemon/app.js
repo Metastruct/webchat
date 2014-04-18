@@ -3,6 +3,16 @@ require('buffertools').extend();
 var util = require("util");
 var fs = require("fs");
 var assert = require("assert");
+var npid = require('npid');
+
+try {
+    var pid = npid.create('webchat.pid',true);
+    pid.removeOnExit();
+} catch (err) {
+    console.log(err);
+    process.exit(1);
+}
+
 
 var CFG=require('./config.json');
 
