@@ -2,6 +2,12 @@
 cd "`dirname \"$0\"`"
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
+#test for network connection due to cron
+while ! wget -q --tries=3 --timeout=20 http://google.com -O- >/dev/null
+do
+	sleep 3
+done
+
 while true; do
 	/usr/bin/node app.js && echo normal shutdown || (echo ABNORMAL TERMINATION >&2;echo "";sleep 3)
 	sleep 0.3
