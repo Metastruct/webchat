@@ -1,9 +1,9 @@
 .container {
-	margin-top: 30px;
+    margin-top: 30px;
 }
 
 .chat {
-	border: none;
+    border: none;
 }
 
 .chat tr td.join { color: #57E964; }
@@ -11,65 +11,65 @@
 .chat tr td.leave { color: #C11B17; }
 
 .chat tr td:nth-child(1) {
-	color: #888;
+    color: #888;
 }
 .chat tr td:nth-child(2) {
-	color: #58e;
+    color: #58e;
 }
 .chat tr td:nth-child(4) {
-	color: #888;
-}		
+    color: #888;
+}       
 .chat tr th {
-	text-align: left;
-	font-weight: normal;
+    text-align: left;
+    font-weight: normal;
 }
 
 .chat .timebox {
-	color: red;
-	font-weight: normal;
-	float: right;
-	color: #888;
+    color: red;
+    font-weight: normal;
+    float: right;
+    color: #888;
 }
 
 @media screen and (min-width: 600px) {
-	.chat tr td:nth-child(1) {
-		vertical-align: top;
-	}
-	.chat tr td:nth-child(2) {
-		text-align:right;
-		white-space: nowrap;
-		vertical-align: top;
-		border-right: 6px solid transparent;
-		overflow: hidden;
-		max-width: 150px;
-	}
-	.chat tr td:nth-child(3) {
-		vertical-align: top;
-	}
-	.chat tr td:nth-child(4) {
-		border-left: 6px solid transparent;
-	}
+    .chat tr td:nth-child(1) {
+        vertical-align: top;
+    }
+    .chat tr td:nth-child(2) {
+        text-align:right;
+        white-space: nowrap;
+        vertical-align: top;
+        border-right: 6px solid transparent;
+        overflow: hidden;
+        max-width: 150px;
+    }
+    .chat tr td:nth-child(3) {
+        vertical-align: top;
+    }
+    .chat tr td:nth-child(4) {
+        border-left: 6px solid transparent;
+    }
 }
 
 @media screen and (max-width: 600px) {
-	.chat tr td:nth-child(1) {
-		display: inline;
-		float: left;
-	}
-	.chat tr td:nth-child(2) {
-		display: inline;
-		float: left;
-		clear: right;
-	}
-	.chat tr td:nth-child(2):after { 
-		content: ":";
-	}
-	.chat tr td:nth-child(3) {
-		float: left;
-		display: inline;
-	}
-	.chat tr td:nth-child(4) {
-		display: inline;
-		float: right;
-	}
+    .chat tr td:nth-child(1) {
+        display: inline;
+        float: left;
+    }
+    .chat tr td:nth-child(2) {
+        display: inline;
+        float: left;
+        clear: right;
+    }
+    .chat tr td:nth-child(2):after { 
+        content: ":";
+    }
+    .chat tr td:nth-child(3) {
+        float: left;
+        display: inline;
+    }
+    .chat tr td:nth-child(4) {
+        display: inline;
+        float: right;
+    }
 }

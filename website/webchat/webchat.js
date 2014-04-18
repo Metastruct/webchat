@@ -11,26 +11,26 @@ function escapeEntities(text) {
 }
 
 function NewMessage() {
-	var container = $('<tr />');
-	var ServerBox = $('<td />');
-	var NickBox = $('<td />');
-	var MessageBox = $('<td />');
-	var TimeBox = $('<td />');
-	TimeBox.text( new Date().format('HH:MM:ss') );
-	container.append(ServerBox);
-	container.append(NickBox);
-	container.append(MessageBox);
-	container.append(TimeBox);
-	$(".chat").prepend(container.fadeIn(200));
-	$('.chat tr:nth-child(1000)').remove();
-	return {srv:ServerBox,nick:NickBox,msg:MessageBox,time:TimeBox};
+    var container = $('<tr />');
+    var ServerBox = $('<td />');
+    var NickBox = $('<td />');
+    var MessageBox = $('<td />');
+    var TimeBox = $('<td />');
+    TimeBox.text( new Date().format('HH:MM:ss') );
+    container.append(ServerBox);
+    container.append(NickBox);
+    container.append(MessageBox);
+    container.append(TimeBox);
+    $(".chat").prepend(container.fadeIn(200));
+    $('.chat tr:nth-child(1000)').remove();
+    return {srv:ServerBox,nick:NickBox,msg:MessageBox,time:TimeBox};
 }
 
 function PrintInfo(message) {
-	var c = NewMessage();
-	c.time.text( new Date().format('HH:MM:ss') );
-	c.msg.text(message);
-	c.nick.text("SYSTEM");
+    var c = NewMessage();
+    c.time.text( new Date().format('HH:MM:ss') );
+    c.msg.text(message);
+    c.nick.text("SYSTEM");
 }
 
 PrintInfo("Connecting to server...");
@@ -38,86 +38,86 @@ PrintInfo("Connecting to server...");
 var token = window.location.hash.substring(1);
 if ( typeof io == 'undefined' )
 {
-	PrintInfo("IO LIBRARY NOT LOADED. SERVER BROKEN!");
+    PrintInfo("IO LIBRARY NOT LOADED. SERVER BROKEN!");
 } 
 
 if (token) {
     var socket = io.connect(chatserv,{
-		reconnect: false
-	});
+        reconnect: false
+    });
 }
-	
-	
+    
+    
 else {
     PrintInfo("Forwarding to login...");
-	window.location.href = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
+    window.location.href = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
 }
 
 socket.on('connect', function() {
     socket.emit('token', token);
     
     socket.on('invalidtoken', function() {
-		PrintInfo("Token is invalid, Forwarding to login.");
-		setInterval(function(){
-			window.location.href = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
-		},1500);
+        PrintInfo("Token is invalid, Forwarding to login.");
+        setInterval(function(){
+            window.location.href = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
+        },1500);
     });
     
     socket.on('ready', function() {
         PrintInfo("Connected!");
         
         socket.on('chat', function(data) {
-			var c = NewMessage();
-			
-			c.msg.text(data.message);
-			c.srv.text('#' + ((data.server) ? data.server : 'WEB'));
-			
+            var c = NewMessage();
+            
+            c.msg.text(data.message);
+            c.srv.text('#' + ((data.server) ? data.server : 'WEB'));
+            
             if (data.steamid) {
-				$('<a>',{	text: data.name,
-							target: "_blank",
-							href: 'http://steamcommunity.com/profiles/' + data.steamid,
-						}).appendTo(c.nick);
+                $('<a>',{   text: data.name,
+                            target: "_blank",
+                            href: 'http://steamcommunity.com/profiles/' + data.steamid,
+                        }).appendTo(c.nick);
             } else {
-				c.nick.text(data.name);
-			}
-			
+                c.nick.text(data.name);
+            }
+            
             c.msg.html(textToLink(escapeEntities(data.message)));
             
         });
         
         socket.on('join', function(data) {
-			var c = NewMessage();
-			
-			c.msg.text("joined the server!");
-			c.msg.addClass('join');
-			c.srv.text('#' + ((data.server) ? data.server : 'WEB'));
-			
+            var c = NewMessage();
+            
+            c.msg.text("joined the server!");
+            c.msg.addClass('join');
+            c.srv.text('#' + ((data.server) ? data.server : 'WEB'));
+            
             if (data.steamid) {
-				$('<a>',{	text: data.name,
-							target: "_blank",
-							href: 'http://steamcommunity.com/profiles/' + data.steamid,
-						}).appendTo(c.nick);
+                $('<a>',{   text: data.name,
+                            target: "_blank",
+                            href: 'http://steamcommunity.com/profiles/' + data.steamid,
+                        }).appendTo(c.nick);
             } else {
-				c.nick.text(data.name);
-			}
-			
+                c.nick.text(data.name);
+            }
+            
         });
         
         socket.on('leave', function(data) {
-			var c = NewMessage();
-			
-			c.msg.text("left the server!");
-			c.msg.addClass('leave');
-			c.srv.text('#' + ((data.server) ? data.server : 'WEB'));
-			
+            var c = NewMessage();
+            
+            c.msg.text("left the server!");
+            c.msg.addClass('leave');
+            c.srv.text('#' + ((data.server) ? data.server : 'WEB'));
+            
             if (data.steamid) {
-				$('<a>',{	text: data.name,
-							target: "_blank",
-							href: 'http://steamcommunity.com/profiles/' + data.steamid,
-						}).appendTo(c.nick);
+                $('<a>',{   text: data.name,
+                            target: "_blank",
+                            href: 'http://steamcommunity.com/profiles/' + data.steamid,
+                        }).appendTo(c.nick);
             } else {
-				c.nick.text(data.name);
-			}
+                c.nick.text(data.name);
+            }
         });
         
         $('form').submit(function(e) {
@@ -140,10 +140,10 @@ socket.on('connect', function() {
 
 
 socket.on('disconnect', function() {
-	PrintInfo('Server disconnected us.');
+    PrintInfo('Server disconnected us.');
 });
 
 socket.on('error', function (e) {
-	PrintInfo(e ? e : 'A unknown error occurred.');
-	console.log('System', e ? e : 'A unknown error occurred');
+    PrintInfo(e ? e : 'A unknown error occurred.');
+    console.log('System', e ? e : 'A unknown error occurred');
 });
