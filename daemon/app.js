@@ -310,6 +310,14 @@ function ParseReceivedData(sock,data) {
 			var msg = data[1];
 			console.log('[PARTYLINE #'+sock.ID+'] ' + msg);
 			break;
+		case 'ctime':
+			var msg = data[1];
+			console.log('[Time Query Response] Uptime: '+msg);
+			break;
+		case 'ctimeq':
+			console.log('[Time Query] Sending...');
+			sock.SendTable([ 'ctime', Math.floor(process.uptime())]);
+			break;
 		case 'oob':
 			var msg = data[1];
 			console.log('[OOB] ' + msg);
