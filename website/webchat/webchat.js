@@ -16,7 +16,7 @@ function NewMessage() {
     var NickBox = $('<td />');
     var MessageBox = $('<td />');
     var TimeBox = $('<td />');
-    TimeBox.text( new Date().format('HH:MM:ss') );
+    TimeBox.text(  (new Date()).toLocaleTimeString() );
     container.append(ServerBox);
     container.append(NickBox);
     container.append(MessageBox);
@@ -28,7 +28,7 @@ function NewMessage() {
 
 function PrintInfo(message) {
     var c = NewMessage();
-    c.time.text( new Date().format('HH:MM:ss') );
+    c.time.text(  (new Date()).toLocaleTimeString() );
     c.msg.text(message);
     c.nick.text("SYSTEM");
 }
