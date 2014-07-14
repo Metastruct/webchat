@@ -119,7 +119,14 @@ socket.on('connect', function() {
                 c.nick.text(data.name);
             }
         });
-        
+		
+        $('#sendbtn').click(function(e) {
+            e.preventDefault();
+            if ($('#chatinput').val().trim() == "") return;
+            socket.emit('message', $('#chatinput').val());
+            $('#chatinput').val('');
+        });
+		
         $('form').submit(function(e) {
             e.preventDefault();
             if ($('#chatinput').val().trim() == "") return;
