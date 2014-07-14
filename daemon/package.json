@@ -29,11 +29,11 @@
     "server"
   ],
   "dependencies" : {
-    "buffertools"   :  "2.0.x",
-    "socket.io" :  "0.9.x",
-    "net" :  "1.0.x",
-    "twitter"    :  "0.2.x",
-	"npid" :	"0.4.x"
+    "buffertools"   :  "2.x.x",
+    "socket.io" :  "0.x.x",
+    "net" :  "1.x.x",
+    "twitter"    :  "0.x.x",
+	"npid" :	"0.x.x"
   },
   "analyze": false,
   "license": "MIT",
