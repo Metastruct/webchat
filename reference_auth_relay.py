@@ -1,10 +1,6 @@
 import cgi
-import cgitb; cgitb.enable()  # for troubleshooting
+#import cgitb; cgitb.enable()  # for troubleshooting
 import sys
-#import paramiko
-#import select
-#import shelve
-#import time
 import socket
 import os
 
@@ -19,7 +15,7 @@ validadders = {
 	"1.2.3.4": True
 }
 
-where = ( "10.0.0.1", 18080 )
+where = ( "127.0.0.1", 18080 )
  
 who = os.environ["REMOTE_ADDR"]
 
@@ -30,9 +26,12 @@ if not validadders.get(who):
 	exit(1)
 
 
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-s.connect(where)
+try:
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+	s.connect(where)
+except:
+	print "service offline"
+	exit(1)
 
 s.send(data)
 

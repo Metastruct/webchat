@@ -1,5 +1,8 @@
 <?php
 
+$authserver_url = "http://sso.metastruct.uk.to/rocket/webchat.py";
+$webchat_returnurl = "http://metastruct.org/webchat/chat.html";
+
 //error_reporting(E_ALL);ini_set('display_errors','On');
 	require_once('sso.php');
 //error_reporting(E_ALL);ini_set('display_errors','On');
@@ -50,12 +53,14 @@ $token = MakeResetKey();
 
 $info = $S->info($steamid);
 $personaname = $info['personaname']; 
-
+if (!$personaname || strlen($personaname)<1) {
+	die("Fatal: No personaname");
+}
+	
 $a = array($token,$steamid,$personaname);
 
 
 $data = array('data' => json_encode($a));
-
 // use key 'http' even if you send the request to https://...
 $options = array(
     'http' => array(
@@ -65,12 +70,12 @@ $options = array(
     ),
 );
 $context  = stream_context_create($options);
-$result = file_get_contents("http://sso.metastruct.uk.to/rocket/webchat.py", false, $context);
+$result = file_get_contents($authserver_url, false, $context);
 
 if ($result!="OK") {
-    die("Sorry, but web chat is currently offline :(\n<br /><br />\n");
+    die("Sorry, but web chat is currently offline :(\n<br />"+$result+"<br />\n");
 }
 
-header("Location: http://metastruct.org/webchat/chat.html#" . $token,TRUE,307);
+header("Location: " . $webchat_returnurl . "#" . $token,TRUE,307);
 
 ?>
