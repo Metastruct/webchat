@@ -9,17 +9,15 @@ do
 done
 
 while true; do
-	/usr/bin/node app.js > console.log 2>&1
+	nodejs app.js > console.log 2>&1
 	OUT=$?
 	if [ $OUT -ne 0 ];then
 		crashfile="crash_`date +%s`.log"
 		tail -n 50 console.log >> "$crashfile"
 		echo "Server exited with code $OUT" | tee -a "$crashfile"
-		sleep 10
-		
+		sleep 15
 	else
-		echo "Restarting"
-		sleep 1
+		break
 	fi
 
 done
