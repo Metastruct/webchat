@@ -4,10 +4,10 @@ $authserver_url = "http://sso.metastruct.uk.to/rocket/webchat.py";
 $webchat_returnurl = "http://metastruct.org/webchat/chat.html";
 
 //error_reporting(E_ALL);ini_set('display_errors','On');
-	require_once('sso.php');
+	require_once('../sso/sso.php');
 //error_reporting(E_ALL);ini_set('display_errors','On');
 
-$S = sso::sso(); 
+$S = SteamSSO::sso();
 
 $S->login(); // LOGIN ONLY
 
