@@ -81,12 +81,17 @@ net.createServer(function(sock) {
     sock.on('data', function(data) {
         try {
             var json = JSON.parse(data);
-            var steamid = json[1];
+			
+			
+			
             //token, steamid, name
-            if (json[0] && json[1] && json[2]) {
+            if (!json[3] && json[0] && json[1] && json[2]) {
+				var steamid = json[1];
                 tokens[json[0]] = { steamid: steamid, name: json[2] };
                 console.log('[AUTH] Added '+steamid);
-            }
+            } else {
+				hooks.emit('authdata',json);
+			}
         } catch(e) {
             console.log('[AUTH] Invalid auth info from ' + (sock.remoteAddress || sock._remoteAddress)+': '+e);
             sock.destroy();
@@ -143,6 +148,7 @@ io.sockets.on('connection', function(socket) {
     socket.on('token', function(token) {
         var UserID = false;
 		var tokendata = token && token.trim() != "" && tokens[token];
+		var clientdata={};
 		if (tokendata) {
 			delete tokens[token];
             clearTimeout(tokentimeout);
@@ -177,6 +183,7 @@ io.sockets.on('connection', function(socket) {
 		socket.join('1');
 		socket.join('2');
 		socket.join('3');
+		socket.join('4');
 		
 		sendToServers(socket.id, [ 'join', UserID, steamid, name, TEAM_WEBCHAT ]); 
 		socket.broadcast.emit('join', { name: clients[UserID].name, steamid: clients[UserID].steamid });
@@ -186,8 +193,9 @@ io.sockets.on('connection', function(socket) {
 				return;
 			}
 			//console.log('[WEB] ' + name + ' (' + socket.handshake.address.address + '): ' + message);
+			var name = clients[UserID].name;
 			
-			hooks.emit('message',message,clients[UserID]);
+			hooks.emit('message',message,clients[UserID],name);
 			sendToServers(socket.id, [ 'say', UserID, message ]);
 			
 			for (room in io.sockets.manager.roomClients[socket.id]) {
@@ -270,9 +278,11 @@ function ParseReceivedData(sock,data) {
 				
 				//console.log('[GAME] ' + Name + ': ' + txt);
 				
-				hooks.emit('message',txt,usr);
+				hooks.emit('message',txt,usr,Name);
 				
-				io.sockets.in(sock.ID).emit('chat', { server: parseInt(sock.ID), name: Name, steamid: usr.SteamID, message: txt });
+				var dat = { server: parseInt(sock.ID), name: Name, steamid: usr.SteamID, message: txt };
+				
+				io.sockets.in(sock.ID).emit('chat', dat);
 			} else {
 				console.trace('PROTOCOL VIOLATION: Server #'+sock.ID+' sent say event for UserID ' + UserID + ', but that userid does not exist!?');
 			}
