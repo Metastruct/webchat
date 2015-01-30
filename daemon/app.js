@@ -338,7 +338,7 @@ function ParseReceivedData(sock,data) {
 			//TODO: Blacklist(sid);
 			break;
 		default:
-			console.log('[GAME] Unhandled sendtype: ' + sendtype);
+			hooks.emit('sendtype',data,sock);
 			break;
 	}
 }
