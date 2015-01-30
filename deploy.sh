@@ -25,17 +25,21 @@ read -p "User: " FUSR
 read -s -p "password: " FPW
 echo FTPing...
 
-BASE="/public_html"
+BASE="./"
 
 ftp -v -n $FFTP <<End-Of-Session
 user "$FUSR" "$FPW"
 binary
 $(
 for di in *;do
-	echo mkdir "$BASE/$di"
-	for f in $di/*;do
-		echo "put \"$f\" \"$BASE/$f\" "
-	done
+	if [ -d "$di" ]; then
+		echo mkdir "$BASE/$di"
+		for f in $di/*;do
+			echo "put \"$f\" \"${BASE}$f\" "
+		done
+	else
+		echo "put \"$di\" \"${BASE}$di\" "
+	fi
 done
 )
 bye

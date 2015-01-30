@@ -14,7 +14,7 @@ while true; do
 	if [ $OUT -ne 0 ];then
 		crashfile="crash_`date +%s`.log"
 		tail -n 50 console.log >> "$crashfile"
-		echo "Server exited with code $OUT" | tee -a "$crashfile"
+		echo "Server exited with code $OUT" | tee -a "$crashfile" 2>&1
 		sleep 15
 	else
 		break
