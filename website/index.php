@@ -76,5 +76,6 @@ $result = file_get_contents($authserver_url, false, $context);
 if ($result!="OK") {
     die("Sorry, but web chat is currently offline :(\n<br />"+$result+"<br />\n");
 }
+$redir_url = $webchat_returnurl . "?n=" . rand(0,99999999999) . "#" . $token;
 
-header("Location: " . $webchat_returnurl. "?n=" . rand(0,99999999999) . "#" . $token,TRUE,307);
+header("Location: " . $redir_url,TRUE,307);
