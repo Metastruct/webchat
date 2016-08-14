@@ -1,4 +1,4 @@
-var chaturl = "http://metastruct.org/webchat";
+var chaturl = "./";
 var chatserv = 'http://arsenic.iriz.uk.to:9080';
 
 function textToLink(text) {
