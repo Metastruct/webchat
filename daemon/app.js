@@ -1,9 +1,13 @@
 require('buffertools').extend();
 
+const crypto = require('crypto'),
+  fs = require("fs");
+  
 var util = require("util");
-var fs = require("fs");
 var assert = require("assert");
 var npid = require('npid');
+var https = require('https');
+var express = require('express');
 
 try {
     var pid = npid.create('webchat.pid',true);
@@ -37,11 +41,28 @@ var AUTHSERVER = CFG.AUTHSERVER;
 //------
 
 var net = require('net');
+var express = require('express');
+var cors = require('cors');
 
-var io = require('socket.io').listen(WEBPORT);
-io.set('log level', 1);
-//io.set("origins","*");
+var privateKey  = fs.readFileSync('key.pem', 'utf8');  
+var certificate = fs.readFileSync('cert.pem', 'utf8');
+var credentials = {key: privateKey, cert: certificate};
+
+var app = express();
+var httpsServer = https.createServer(credentials, app);
+var srv = httpsServer.listen(WEBPORT);
+
+
+var corsOptions = {
+  origin: 'https://www3.metastruct.net'
+};
  
+app.options('*', cors(corsOptions)); 
+
+var io = require('socket.io')(srv);
+
+io.set( 'origins', '*www3.metastruct.net*:*' );
+
 var servers = {}; //sockets of game servers that are currently connected
 var tokens = {}; //valid user tokens
 var clients = {}; //authed web users
@@ -103,13 +124,13 @@ net.createServer(function(sock) {
 
 
 function sendToServers(socketid, data) {
-    for (var server in io.sockets.manager.roomClients[socketid]) {
-        if (server == "") continue; //ignore the catch-all socket.io room
-        var srv = servers[server.substring(1)]; //substring to remove the start /
-        if (srv && srv.socket) {
+    for (var s in servers) {
+        var srv = servers[s];
+		
+		if (srv && srv.socket) {
 			srv.socket.SendTable(data);
 		} else {
-			console.log('[WEB] Unable to send to "'+server+'", server down?');
+			console.log('[WEB] Unable to send to "'+srv+'", server down?');
 		}
     }
 }
@@ -131,7 +152,7 @@ function onDisconnect(socket,UserID) {
 	
 }
 
-console.log('[WEB] Listening on port ' + WEBPORT);
+function GETIP(client ) { return client.request.headers['x-forwarded-for'] || client.request.headers['X-forwarded-for'] || client.request.connection.remoteAddress;};
 
 // webchat connect
 io.sockets.on('connection', function(socket) {
@@ -140,10 +161,10 @@ io.sockets.on('connection', function(socket) {
         if (typeof socket.handshake === "undefined") {
 			return;
         } else {
-            console.log('[WEB] ' + socket.handshake.address.address + ' timed out before auth');
+            console.log('[WEB] ' + GETIP(socket) + ' timed out before auth');
 			socket.disconnect();
 		}
-    }, 5000); //if they haven't sent a token in 5 secs d/c them
+    }, 7000); //if they haven't sent a token in 5 secs d/c them
     	
     socket.on('token', function(token) {
         var UserID = false;
@@ -168,7 +189,8 @@ io.sockets.on('connection', function(socket) {
 			
             socket.emit('ready');
         } else {
-			console.log('[WEB] Invalid token from ' + socket.handshake.address.address );
+			
+			console.log('[WEB] Invalid token from ' + GETIP(socket) );
             socket.emit('invalidtoken');
             socket.disconnect();
             return;
@@ -179,11 +201,6 @@ io.sockets.on('connection', function(socket) {
 
 		console.log('[WEB] ' + name + ' ('+steamid+') connected (userid ' + UserID+').');
 
-		// todo: get rid of these. They work awfully bad. Clientside filtering rather...
-		socket.join('1');
-		socket.join('2');
-		socket.join('3');
-		socket.join('4');
 		
 		sendToServers(socket.id, [ 'join', UserID, steamid, name, TEAM_WEBCHAT ]); 
 		socket.broadcast.emit('join', { name: clients[UserID].name, steamid: clients[UserID].steamid });
@@ -198,9 +215,7 @@ io.sockets.on('connection', function(socket) {
 			hooks.emit('message',message,clients[UserID],name);
 			sendToServers(socket.id, [ 'say', UserID, message ]);
 			
-			for (room in io.sockets.manager.roomClients[socket.id]) {
-				io.sockets.in(room).emit('chat', { name: name, steamid: steamid, message: message });
-			};
+			io.sockets.emit('chat', { name: name, steamid: steamid, message: message });
 		});
 
 		socket.on('disconnect', function() {
@@ -282,7 +297,7 @@ function ParseReceivedData(sock,data) {
 				
 				var dat = { server: parseInt(sock.ID), name: Name, steamid: usr.SteamID, message: txt };
 				
-				io.sockets.in(sock.ID).emit('chat', dat);
+				io.sockets.emit('chat', dat);
 			} else {
 				console.trace('PROTOCOL VIOLATION: Server #'+sock.ID+' sent say event for UserID ' + UserID + ', but that userid does not exist!?');
 			}
@@ -297,7 +312,7 @@ function ParseReceivedData(sock,data) {
 			
 			servers[sock.ID].users[UserID] = { SteamID: SteamID, Name: Name };
 			//console.log('#'+sock.ID+' ' + Name + ' joined (' + SteamID+ ')');
-			io.sockets.in(sock.ID).emit('join', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
+			io.sockets.emit('join', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
 			break;
 			
 		case 'leave':
@@ -309,7 +324,7 @@ function ParseReceivedData(sock,data) {
 				var Name = usr.Name || "PLAYER MISSING??";
 			
 				//console.log('#'+sock.ID+' ' + Name + ' left (' + SteamID+ ')');
-				io.sockets.in(sock.ID).emit('leave', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
+				io.sockets.emit('leave', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
 				delete servers[sock.ID].users[UserID];
 			} else {
 				console.trace('PROTOCOL VIOLATION: Server #'+sock.ID+' sent leave event for UserID ' + UserID + ', but that userid does not exist!?');
@@ -353,9 +368,9 @@ function serverfunc(sock) {
 	});
 	
 	if ((sock.remoteAddress || sock._remoteAddress) !== undefined && WHITELIST.indexOf((sock.remoteAddress || sock._remoteAddress)) == -1) {
-        console.log('[GAME] Rejected connection from ' + (sock.remoteAddress || sock._remoteAddress));
-        sock.destroy();
-        return;
+        //console.log('[GAME] Non-whitelisted connection from ' + (sock.remoteAddress || sock._remoteAddress));
+        //sock.destroy();
+        //return;
     }
     
     
