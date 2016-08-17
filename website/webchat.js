@@ -1,5 +1,21 @@
 var chaturl = "./";
-var chatserv = 'http://arsenic.iriz.uk.to:9080';
+var chatserv = 'wss://sso.metastruct.uk.to:8443';
+
+(function(namespace) { // Closure to protect local variable "var hash"
+    if ('replaceState' in history) { // Yay, supported!
+        namespace.replaceHash = function(newhash) {
+            if ((''+newhash).charAt(0) !== '#') newhash = '#' + newhash;
+            history.replaceState('', '', newhash);
+        }
+    } else {
+        var hash = location.hash;
+        namespace.replaceHash = function(newhash) {
+            if (location.hash !== hash) history.back();
+            location.hash = newhash;
+        };
+    }
+})(window);
+
 
 function textToLink(text) {
     var exp = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
@@ -41,17 +57,19 @@ if ( typeof io == 'undefined' )
     PrintInfo("IO LIBRARY NOT LOADED. SERVER BROKEN!");
 } 
 
-if (token) {
+if (token && token.length>1) 
+{
     var socket = io.connect(chatserv,{
         reconnect: false
     });
 }
-    
-    
-else {
+else 
+{
     PrintInfo("Forwarding to login...");
     window.location.href = chaturl+"?nocache="+Math.floor((Math.random()*10000000)+1);;
 }
+window.replaceHash(' ');
+
 
 socket.on('connect', function() {
     socket.emit('token', token);
@@ -134,12 +152,6 @@ socket.on('connect', function() {
             $('#chatinput').val('');
         });
         
-        $("input[type=checkbox]").change(function() {
-            if ($(this).checked)
-                socket.emit('join', parseInt($(this).data("server")));
-            else
-                socket.emit('leave', parseInt($(this).data("server")));
-        });
     });
 });
 
