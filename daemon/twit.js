@@ -40,12 +40,10 @@ module.exports = function(hooks,CFG){
 	function DoTweet( msg ) {
 		if (!CanTweet()) return;
 		PreTweet( msg );
-		
-		twit.updateStatus( msg,
-			function(data) {
-				console.log("[Twitter] updateStatus: "+util.inspect(data));
-			}
-		);
+
+		twit.post('statuses/update', {status: msg}, function(error, tweet, response) {
+		    console.log("[Tweet] " + tweet + " - " + (error || "") + " - " + util.inspect(response));
+		});
 
 	};
 
@@ -66,6 +64,7 @@ module.exports = function(hooks,CFG){
 			(typeof msg == 'string' || msg instanceof String) &&
 			Tweetable( msg )) // is it something we want to tweet?
 		{
+			
 			DoTweet( msg );
 		}
 	};
@@ -76,5 +75,24 @@ module.exports = function(hooks,CFG){
 		} catch (err) { 
 			console.log("[Twitter] msg error: "+util.inspect(err));
 		}
+	});
+	
+	// twitter user stream
+	
+	var Stream = require('user-stream');
+	var stream = new Stream({
+		consumer_key: CFG.consumer_key,
+		consumer_secret: CFG.consumer_secret,
+		access_token_key: CFG.access_token_key,
+		access_token_secret: CFG.access_token_secret
+	});
+	
+	//create stream
+	stream.stream({'with': 'followings'});
+
+	//listen stream data
+	stream.on('data', function(json) {
+		console.log("Stream data received, len="+(json.length));
+		hooks.emit('sendToServers',["tweet",json]);
 	});
 }
