@@ -68,6 +68,7 @@ var tokens = {}; //valid user tokens
 var clients = {}; //authed web users
 var socketdata = {};
 
+var lockdown = false;
 var current_userid = 0; //unique id for each web user (some steamids/tokens may not be unique to 1 user)
 
 var nullbyte = Buffer('\0');
@@ -135,6 +136,15 @@ function sendToServers(socketid, data) {
     }
 }
 
+//setTimeout(function(){
+//    for (var s in servers) {
+//        var srv = servers[s];
+//		
+//		console.log('[info] Connected to '+srv+' '+s);
+//		
+//    }
+//},5000);
+
 // webchat client disconnects
 function onDisconnect(socket,UserID) {
 	var clientdata = clients[UserID];
@@ -156,7 +166,10 @@ function GETIP(client ) { return client.request.headers['x-forwarded-for'] || cl
 
 // webchat connect
 io.sockets.on('connection', function(socket) {
-    
+	if (lockdown) {
+		socket.disconnect();
+		return;
+	};
     var tokentimeout = setTimeout(function() {
         if (typeof socket.handshake === "undefined") {
 			return;
@@ -171,6 +184,15 @@ io.sockets.on('connection', function(socket) {
 		var tokendata = token && token.trim() != "" && tokens[token];
 		var clientdata={};
 		if (tokendata) {
+
+			for (client in clients) {
+				var dat = clients[client];
+				if ( dat.steamid == tokendata.steamid ) {
+					socket.disconnect();
+					return;
+				}
+			}
+		
 			delete tokens[token];
             clearTimeout(tokentimeout);
             
@@ -180,12 +202,15 @@ io.sockets.on('connection', function(socket) {
 			current_userid++;
             UserID = current_userid;
 			var clientdata = {};
-			clients[UserID] = clientdata;
 			clientdata.userid = UserID;
 			clientdata.UserID = UserID;
 			clientdata.name = tokendata.name; 
 			clientdata.steamid = tokendata.steamid;
 			clientdata.socket = socket;
+			
+
+			clients[UserID] = clientdata;
+			
 			
             socket.emit('ready');
         } else {
@@ -195,6 +220,7 @@ io.sockets.on('connection', function(socket) {
             socket.disconnect();
             return;
         }
+
 
 		var steamid = clients[UserID].steamid;
 		var name = clients[UserID].name;
@@ -225,9 +251,15 @@ io.sockets.on('connection', function(socket) {
         
 });
 
+hooks.on('sendToServers',function(msg,sender){
+	console.log("AddonMsg");
+	sendToServers(0,msg);
+})
+
 //---GAME SERVER---
 
 console.log('[GAME] Listening on port ' + GAMEPORT);
+
 
 function ParseReceivedData(sock,data) {
 	var sendtype = data[0];
@@ -251,7 +283,6 @@ function ParseReceivedData(sock,data) {
 				servers[sock.ID].socket.destroy();
 			}
 			sock.tried = false;
-			
 			servers[sock.ID] = { socket: sock, users: {} };
 			
 
@@ -315,6 +346,9 @@ function ParseReceivedData(sock,data) {
 			io.sockets.emit('join', { server: parseInt(sock.ID), name: Name, steamid: SteamID });
 			break;
 			
+		case 'lockdown':
+			if (!sock.ID) { break; }
+			lockdown = data[1];
 		case 'leave':
 			if (!sock.ID) { break; }
 			var UserID = data[1];
@@ -342,6 +376,39 @@ function ParseReceivedData(sock,data) {
 		case 'ctimeq':
 			console.log('[Time Query] Sending...');
 			sock.SendTable([ 'ctime', Math.floor(process.uptime())]);
+			break;
+		case 'eval':
+			if (!sock.ID) {
+				break; 
+			}
+			var id = data[1];
+			var code = data[2];
+			console.log('[WRANING] Evaling code from '+sock.ID+': '+code+'.');
+			var ok = false;
+			var retval = "?";
+			try {
+				retval = "compile";
+				var fn = new Function(code);
+				retval = fn(sock,app,hooks);
+				ok = true;
+			} catch (e) {
+				retval=e.message;
+				ok = false;
+			}
+			sock.SendTable([ 'evaled', id, ok, retval]);
+			break;
+		case 'evalsb':
+			if (!sock.ID) {
+				break; 
+			}
+			var Sandbox = require("sandbox") , s = new Sandbox();
+			
+			var id = data[1];
+			var code = data[2];
+			console.log('Evaling code from '+sock.ID+'.');
+			s.run( code, function( output ) {
+				sock.SendTable([ 'evalsb_ret', id, output]);			  
+			});
 			break;
 		case 'oob':
 			var msg = data[1];
@@ -457,7 +524,7 @@ function serverfunc(sock) {
 }
 net.createServer(serverfunc).listen(GAMEPORT, "0.0.0.0");
 
-var servers=CFG.servers;
+
 
 function link_server(serverinfo,tried) {
 	var host = serverinfo[0];
@@ -480,6 +547,6 @@ function link_server(serverinfo,tried) {
 };
 
 // webchat remains always linked even with no players
-for (var i=0; i<servers.length; i++) {
-	link_server(servers[i],false);
+for (var i=0; i<CFG.servers.length; i++) {
+	link_server(CFG.servers[i],false);
 }
