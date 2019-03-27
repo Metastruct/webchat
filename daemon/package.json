@@ -28,12 +28,14 @@
     "gmod",
     "server"
   ],
-  "dependencies" : {
-    "buffertools"   :  "2.x.x",
-    "socket.io" :  "0.x.x",
-    "net" :  "1.x.x",
-    "twitter"    :  "0.x.x",
-	"npid" :	"0.x.x"
+  "dependencies": {
+    "buffertools": "2.x.x",
+    "cors": "^2.8.5",
+    "express": "^4.16.4",
+    "net": "1.x.x",
+    "npid": "0.x.x",
+    "socket.io": "2.x.x",
+    "twitter": "1.x.x"
   },
   "analyze": false,
   "license": "MIT",

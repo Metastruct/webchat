@@ -71,12 +71,12 @@ var socketdata = {};
 var lockdown = false;
 var current_userid = 0; //unique id for each web user (some steamids/tokens may not be unique to 1 user)
 
-var nullbyte = Buffer('\0');
+var nullbyte = Buffer.from('\0');
 
 net.Socket.prototype.SendTable = function(data) {
     try {
         var msg = JSON.stringify(data);
-        var buf = new Buffer(msg+'\0');
+        var buf = new Buffer.from(msg+'\0');
         this.write(buf);
     } catch (e) {
         console.log("[GAME] ERROR: Couldn't send table: " + e);
